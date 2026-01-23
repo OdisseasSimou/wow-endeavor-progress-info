@@ -1,13 +1,17 @@
 # Endeavor Tracker
 
-A World of Warcraft addon that displays XP progress for housing endeavor milestones.
+A World of Warcraft addon that displays XP progress for housing endeavor milestones with customizable display options and automatic task XP tooltips.
 
 ## Features
 
-- Shows XP needed for the next housing endeavor milestone
-- Displays on hover over the endeavor progress bar
-- Clean, non-intrusive tooltip-style display
-- Automatically updates when you earn XP
+- **XP Progress Display** - Shows XP needed for the next milestone on hover over the progress bar
+- **Task XP Tooltips** - Automatically displays contribution XP values when hovering over tasks
+- **7 Display Formats** - Choose from detailed, simple, progress bar, short, minimal, percentage, or next & final formats
+- **12 Color Presets** - Customize text color with preset options or custom color picker
+- **Decimal Precision** - All values display with 1 decimal place for accuracy
+- **Dynamic API Integration** - Automatically reads milestone data from the game API
+- **Clean UI** - Non-intrusive tooltip-style overlay that appears only when needed
+- **Automatic Updates** - Refreshes when you earn XP or complete tasks
 
 ## Installation
 
@@ -20,69 +24,69 @@ A World of Warcraft addon that displays XP progress for housing endeavor milesto
 
 ## Usage
 
+### XP Progress Display
 1. Open the Housing Dashboard (Press `Shift+P` or click the garrison icon)
 2. Navigate to the **Endeavors** tab
-3. Hover over the endeavor progress bar to see XP information
+3. Hover over the endeavor progress bar to see your XP progress
 
-The tooltip will display:
-- Current XP / Next Milestone Threshold
-- Exact amount of XP needed to reach the next milestone
-
-Example: `Next Milestone: 2754 / 5000 (2246 XP needed)`
+### Task XP Tooltips
+- Hover over any task in the Endeavors tab to see its contribution XP value
+- The addon automatically caches XP data from completed tasks
+- Tooltips show the task name and contribution amount (e.g., "3.25 XP")
 
 ## Commands
 
 - `/et` - Open settings panel
-- `/et refresh` - Manually refresh the XP display
-- `/et debug` - Show detailed API milestone information
-- `/etconfig` or `/etset` - Alternative commands to open settings
-- `/endeavortracker` - Alternative command for settings
+- `/et refresh` - Manually refresh the XP display and task cache
 
 ## Settings
 
 Access the settings panel through:
 - **Game Menu → Options → AddOns → Endeavor Tracker**
-- Or use the command: `/et`, `/etconfig`, or `/etset`
-
-You can customize:
+- Or use the command: `/et`
 
 ### Text Format Options
-Choose how the XP information is displayed:
-1. **Detailed (Default)** - `Milestone 2: 125 / 250 (125 XP needed)`
-2. **Simple** - `125 XP to reach Milestone 2 (completed: M1)`
-3. **Progress Bar Style** - `M2 Progress: 125/250 (50%) - 125 XP to go`
-4. **Short** - `To Milestone 2: 125 XP remaining`
-5. **Minimal** - `125 XP to next milestone`
-6. **Percentage Focus** - `50% to M2 - 125 XP needed`
-7. **Next & Final** - `Next: 125 XP | Final: 875 XP`
+Choose how the XP information is displayed (all values show 1 decimal place):
+
+1. **Detailed (Default)** - `Milestone 2: 125.0 / 250.0 (125.0 XP needed)`
+2. **Simple** - `125.0 XP to reach Milestone 2 (completed: M1)`
+3. **Progress Bar Style** - `M2 Progress: 125.0/250.0 (50.0%) - 125.0 XP to go`
+4. **Short** - `To Milestone 2: 125.0 XP remaining`
+5. **Minimal** - `125.0 XP to next milestone`
+6. **Percentage Focus** - `50.0% to M2 - 125.0 XP needed`
+7. **Next & Final** - `Next: 125.0 XP | Final: 875.0 XP`
 
 ### Color Options
 - **Tooltip Text Color** - Change the color of the XP display text (default: golden)
   - Click the color box to open the color picker for custom colors
   - Click "Reset to Default" to restore the original golden color
   - Choose from 12 preset colors:
-    - Gold (Default) - Classic WoW gold
-    - Bright Gold - Brighter golden yellow
-    - White - Clean white text
-    - Light Blue - Soft blue
-    - Cyan - Bright aqua
-    - Green - Vibrant green
-    - Light Green - Softer green
-    - Orange - Warm orange
-    - Red - Bold red
-    - Pink - Soft pink
-    - Purple - Rich purple
-    - Yellow - Bright yellow
+    - Gold (Default), Bright Gold, White, Light Blue
+    - Cyan, Green, Light Green, Orange
+    - Red, Pink, Purple, Yellow
 
 All changes take effect immediately and are saved across sessions.
 
 ## Milestones
 
 The addon tracks all 4 housing endeavor milestones:
-1. 250 XP
-2. 500 XP
-3. 750 XP
-4. 1,000 XP (max)
+1. **250 XP** - First milestone
+2. **500 XP** - Second milestone
+3. **750 XP** - Third milestone
+4. **1,000 XP** - Maximum (final milestone)
+
+Milestone values are automatically read from the game API with fallback to these hardcoded values if API data is unavailable.
+
+## Code Structure
+
+The addon follows an MVC (Model-View-Controller) architecture:
+
+- **Model** - `Core.lua` - Data model with API interactions, XP calculations, and task cache
+- **View**
+  - `Display.lua` - XP progress overlay on the endeavors frame
+  - `Tooltips.lua` - Task tooltip enhancements showing contribution XP
+  - `UI.lua` - Settings panel with customization options
+- **Controller** - `EndeavorTracker.lua` - Main controller coordinating events and commands
 
 ## Compatibility
 
@@ -90,16 +94,24 @@ The addon tracks all 4 housing endeavor milestones:
 - **Interface**: 110207, 120000
 - **API**: Uses `C_NeighborhoodInitiative`
 
+## Technical Details
+
+- **SavedVariables**: `EndeavorTrackerDB` stores color and text format preferences
+- **Task XP Cache**: Automatically built from activity log, cached for 5 minutes
+- **Percentage Calculations**: Shows progress between milestones (not total progress)
+- **Decimal Precision**: All numeric values display with 1 decimal place
+
 ## Known Issues
 
-- The overlay only appears on hover (this is intentional to keep the UI clean)
-- If the progress bar is not detected automatically, try `/et` to refresh
+- The XP overlay only appears on hover (intentional design to keep UI clean)
+- Task tooltips only show data for tasks you've completed at least once
+- If the progress bar is not detected automatically, try `/et refresh`
 
 ## Support
 
 If you encounter any issues, try:
 1. `/reload` to reload the UI
-2. `/et` to manually refresh the tracker
+2. `/et refresh` to manually refresh the tracker and task cache
 3. Close and reopen the Housing Dashboard
 
 ## License

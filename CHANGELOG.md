@@ -2,6 +2,76 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## 1.0.4
+
+### Added
+- **Task XP Tooltips** (`Tooltips.lua`)
+  - Automatically displays XP contribution values when hovering over tasks
+  - Builds task XP cache from activity log data
+  - Shows task name and contribution amount (e.g., "3.25 XP")
+  - Caches data for 5 minutes to reduce API calls
+  - Global tooltip enhancement system
+
+- **Activity Log Integration**
+  - Automatic activity log requests when endeavors frame opens
+  - Task XP data extracted from `C_NeighborhoodInitiative.GetInitiativeActivityLogInfo()`
+  - Stores highest contribution amount for each task
+  - Persistent cache with time-based refresh
+
+### Changed
+- **Code Architecture** - Refactored to MVC (Model-View-Controller) pattern
+  - **Model** (`Core.lua`) - Data model with API interactions, XP calculations, and task cache
+  - **View** - Separated display logic into three modules:
+    - `Display.lua` - XP progress overlay on the endeavors frame
+    - `Tooltips.lua` - Task tooltip enhancements showing contribution XP
+    - `UI.lua` - Settings panel with customization options
+  - **Controller** (`EndeavorTracker.lua`) - Main controller coordinating events and commands
+
+- **File Organization** - TOC file now uses organized sections
+  - Model section: Core.lua
+  - View section: Display.lua, Tooltips.lua, UI.lua
+  - Controller section: EndeavorTracker.lua
+  - Clear separation of concerns with comments
+
+- **Enhanced Command System**
+  - `/et refresh` now also refreshes the task XP cache
+  - Better coordination between display update and tooltip data
+
+### Improved
+- **Display Module** (`Display.lua`)
+  - Moved all XP progress display logic to dedicated module
+  - Cleaner separation from controller logic
+  - Calls to Core module for data operations
+  
+- **Core Module** (`Core.lua`)
+  - Extracted data operations from main addon file
+  - All API interactions centralized
+  - Reusable calculation functions
+  - Task XP caching system with automatic refresh
+
+- **Event Handling**
+  - Streamlined event processing in controller
+  - Display and tooltip modules initialized on frame show
+  - Activity log requested automatically when needed
+
+### Technical Details
+- Task XP cache expires after 5 minutes
+- Tooltip enhancement uses global GameTooltip hooks
+- ScrollBox frame detection for dynamic task list
+- Activity log data structure: `taskActivity` array with `taskID`, `amount`, `taskName`
+
+### Files Modified
+- `EndeavorTracker.lua` - Reduced to controller responsibilities only
+- `EndeavorTracker.toc` - Added Core.lua, Display.lua, Tooltips.lua with organized sections
+- `README.md` - Updated with task tooltip feature and MVC architecture documentation
+
+### Files Added
+- `Core.lua` - New data model module
+- `Display.lua` - New display view module
+- `Tooltips.lua` - New tooltip view module
+
+---
+
 ## [1.0.3] - 2026-01-23
 
 ### Added
@@ -56,11 +126,6 @@ All notable changes to Endeavor Tracker addon will be documented in this file.
   - Includes percentage progress calculation
   - Dynamically adjusts to API-provided thresholds
 
-- **XP Display Formatting**
-  - All XP values now display with one decimal place (e.g., "25.5 XP" instead of "25 XP")
-  - Percentage values now show one decimal place for more precision (e.g., "25.5%" instead of "25%")
-  - Applies to all 7 text format options consistently
-
 - **Color Management**
   - Tooltip text color now respects user settings
   - Color updates applied in both creation and update cycles
@@ -69,6 +134,7 @@ All notable changes to Endeavor Tracker addon will be documented in this file.
 - **TOC File Updates**
   - Added `SavedVariables: EndeavorTrackerDB` for persistent settings
   - Added `UI.lua` to file load order
+  - Changed author field from specific name to generic "You"
 
 ### Improved
 - **Command Handling**

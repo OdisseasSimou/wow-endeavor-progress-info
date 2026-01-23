@@ -5,5 +5,13 @@
 ## Notes: Shows XP needed for next housing endeavor milestone on hover
 ## SavedVariables: EndeavorTrackerDB
 
-EndeavorTracker.lua
+# Model
+Core.lua
+
+# View
+Display.lua
+Tooltips.lua
 UI.lua
+
+# Controller
+EndeavorTracker.lua
