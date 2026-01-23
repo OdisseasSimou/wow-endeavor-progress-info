@@ -271,34 +271,34 @@ function EndeavorTracker:UpdateXPDisplay()
         local previousThreshold = completedMilestone > 0 and MILESTONE_THRESHOLDS[completedMilestone] or 0
         local xpFromPrevious = currentXP - previousThreshold
         local xpBetweenMilestones = threshold - previousThreshold
-        local percentage = math.floor((xpFromPrevious / xpBetweenMilestones) * 100)
+        local percentage = math.floor((xpFromPrevious / xpBetweenMilestones) * 1000) / 10
         
         -- Format text based on selected format
         local text
         if textFormat == "simple" then
             -- Show both completed and target milestone for clarity
             if completedMilestone > 0 then
-                text = string.format("%d XP to reach Milestone %d (completed: M%d)", 
+                text = string.format("%.1f XP to reach Milestone %d (completed: M%d)", 
                     xpNeeded, milestone, completedMilestone)
             else
-                text = string.format("%d XP to reach Milestone %d", xpNeeded, milestone)
+                text = string.format("%.1f XP to reach Milestone %d", xpNeeded, milestone)
             end
         elseif textFormat == "progress" then
-            text = string.format("M%d Progress: %d/%d (%d%%) - %d XP to go", 
+            text = string.format("M%d Progress: %.1f/%.1f (%.1f%%) - %.1f XP to go", 
                 milestone, xpFromPrevious, xpBetweenMilestones, percentage, xpNeeded)
         elseif textFormat == "short" then
-            text = string.format("To Milestone %d: %d XP remaining", milestone, xpNeeded)
+            text = string.format("To Milestone %d: %.1f XP remaining", milestone, xpNeeded)
         elseif textFormat == "minimal" then
-            text = string.format("%d XP to next milestone", xpNeeded)
+            text = string.format("%.1f XP to next milestone", xpNeeded)
         elseif textFormat == "percentage" then
-            text = string.format("%d%% to M%d - %d XP needed", 
+            text = string.format("%.1f%% to M%d - %.1f XP needed", 
                 percentage, milestone, xpNeeded)
         elseif textFormat == "nextfinal" then
             local xpToFinal = 1000 - currentXP
-            text = string.format("Next: %d XP | Final: %d XP", xpNeeded, xpToFinal)
+            text = string.format("Next: %.1f XP | Final: %.1f XP", xpNeeded, xpToFinal)
         else -- detailed (default)
             -- Show progress from previous milestone to next
-            text = string.format("Milestone %d: %d / %d (%d XP needed)", 
+            text = string.format("Milestone %d: %.1f / %.1f (%.1f XP needed)", 
                 milestone, xpFromPrevious, xpBetweenMilestones, xpNeeded)
         end
         

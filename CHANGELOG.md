@@ -56,6 +56,11 @@ All notable changes to Endeavor Tracker addon will be documented in this file.
   - Includes percentage progress calculation
   - Dynamically adjusts to API-provided thresholds
 
+- **XP Display Formatting**
+  - All XP values now display with one decimal place (e.g., "25.5 XP" instead of "25 XP")
+  - Percentage values now show one decimal place for more precision (e.g., "25.5%" instead of "25%")
+  - Applies to all 7 text format options consistently
+
 - **Color Management**
   - Tooltip text color now respects user settings
   - Color updates applied in both creation and update cycles
@@ -63,7 +68,7 @@ All notable changes to Endeavor Tracker addon will be documented in this file.
 
 - **TOC File Updates**
   - Added `SavedVariables: EndeavorTrackerDB` for persistent settings
-  - Added `UI.lua` to file load order 
+  - Added `UI.lua` to file load order
 
 ### Improved
 - **Command Handling**
