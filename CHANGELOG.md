@@ -2,7 +2,7 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
-## [1.0.0] - 2026-01-23
+## [1.0.3] - 2026-01-23
 
 ### Added
 - **New Settings UI System** (`UI.lua`)
