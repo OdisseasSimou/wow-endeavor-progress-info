@@ -2,6 +2,47 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.0.5] - 2026-01-23
+
+### Added
+- **Cache Purge Functionality**
+  - Manual cache clearing with `/et refresh` command
+  - Ensures fresh task XP data on demand
+
+### Changed
+- **Task XP Cache Logic** (`Core.lua`)
+  - Now uses most recent completion time instead of highest amount
+  - Stores `completionTime` field for each cached task
+  - Ensures task XP reflects most recent completion, not highest contribution
+  - Requests fresh activity log data when building cache
+
+- **Refresh Command Enhancement** (`EndeavorTracker.lua`)
+  - Now purges task XP cache before refreshing
+  - Explicitly requests activity log data
+  - Extended wait time to 1 second for API data to be ready
+  - Rebuilds cache after API request completes
+  - Updated feedback message to indicate cache purge
+
+### Fixed
+- **Task XP Accuracy**
+  - Fixed issue where cache stored highest XP amount instead of most recent
+  - Task tooltips now accurately reflect current XP values based on last completion
+  - Prevents outdated XP values from being displayed
+
+### Improved
+- **Cache Reliability**
+  - More robust cache refresh mechanism
+  - Better coordination between API requests and cache building
+  - Documentation clarifies cache uses most recent completion
+
+### Files Modified
+- `Core.lua` - Updated task cache to use completion time instead of highest amount
+- `EndeavorTracker.lua` - Enhanced refresh command with cache purge
+- `EndeavorTracker.toc` - Author field updated
+- `README.md` - Clarified cache behavior and decimal precision documentation
+
+---
+
 ## [1.0.4] - 2026-01-23
 
 ### Added

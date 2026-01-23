@@ -56,17 +56,30 @@ SlashCmdList["ENDEAVORTRACKER"] = function(msg)
     if msg == "refresh" or msg == "reload" or msg == "update" then
         -- Manual refresh
         print("Endeavor Tracker: Refreshing display...")
+        
+        -- Purge cache first
+        if EndeavorTrackerCore then
+            EndeavorTrackerCore.taskXPCache = {}
+            EndeavorTrackerCore.taskXPCacheTime = 0
+        end
+        
         if C_NeighborhoodInitiative then
             C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
         end
         if EndeavorTrackerDisplay then
             EndeavorTrackerDisplay:HookEndeavorsFrame()
         end
-        C_Timer.After(0.5, function()
+        
+        -- Wait longer for API data to be ready, then rebuild cache
+        C_Timer.After(1, function()
+            if EndeavorTrackerCore then
+                EndeavorTrackerCore:BuildTaskXPCache()
+            end
             if EndeavorTrackerDisplay then
                 EndeavorTrackerDisplay:UpdateXPDisplay()
             end
-            print("Endeavor Tracker: Refresh complete")
+            print("Endeavor Tracker: Cache purged and refresh complete")
         end)
     else
         -- Default: open settings

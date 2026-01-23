@@ -96,20 +96,25 @@ function EndeavorTrackerCore:BuildTaskXPCache()
         return cache
     end
     
+    -- Request fresh activity log data
+    C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+    
     -- Get activity log data
     local logInfo = C_NeighborhoodInitiative.GetInitiativeActivityLogInfo()
     if logInfo and logInfo.taskActivity then
         for _, entry in ipairs(logInfo.taskActivity) do
             local taskId = entry.taskID
-            local amount = entry.amount
             local taskName = entry.taskName
+            local amount = entry.amount
+            local completionTime = entry.completionTime or 0
             
             if taskId and amount and taskName then
-                -- Store highest amount for each task
-                if not cache[taskId] or amount > cache[taskId].amount then
+                -- Store most recent entry for each task (based on completionTime)
+                if not cache[taskId] or completionTime > (cache[taskId].completionTime or 0) then
                     cache[taskId] = {
                         name = taskName,
-                        amount = amount
+                        amount = amount,
+                        completionTime = completionTime
                     }
                 end
             end
