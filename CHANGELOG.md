@@ -2,7 +2,7 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
-## 1.0.4
+## [1.0.4] - 2026-01-23
 
 ### Added
 - **Task XP Tooltips** (`Tooltips.lua`)
