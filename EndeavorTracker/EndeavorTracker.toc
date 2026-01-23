@@ -1,0 +1,7 @@
+## Interface: 110207, 120000
+## Title: Endeavor Tracker
+## Author: Er3VoS
+## Version: 1.0
+## Notes: Shows XP needed for next housing endeavor milestone on hover
+
+EndeavorTracker.lua
