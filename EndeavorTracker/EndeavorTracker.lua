@@ -5,18 +5,13 @@
 
 local EndeavorTracker = {}
 
--- Milestone XP thresholds (these are the total XP values)
+-- Milestone XP thresholds (fallback values if API data unavailable)
+-- Note: Max endeavor XP is 1000 with 4 milestones
 local MILESTONE_THRESHOLDS = {
-    500,    -- Milestone 1
-    1500,   -- Milestone 2
-    3000,   -- Milestone 3
-    5000,   -- Milestone 4
-    7500,   -- Milestone 5
-    10500,  -- Milestone 6
-    14000,  -- Milestone 7
-    18000,  -- Milestone 8
-    22500,  -- Milestone 9
-    27500,  -- Milestone 10
+    250,    -- Milestone 1
+    500,    -- Milestone 2
+    750,    -- Milestone 3
+    1000,   -- Milestone 4 (max)
 }
 
 function EndeavorTracker:GetCurrentProgress()
@@ -44,22 +39,49 @@ function EndeavorTracker:GetCurrentProgress()
         maxProgress = info.progressRequired or 0,
         seasonName = info.title or "Unknown",
         milestones = info.milestones,
+        rawInfo = info, -- Store full info for debugging
     }
 end
 
-function EndeavorTracker:CalculateXPNeeded(currentXP)
+function EndeavorTracker:GetMilestoneThresholds(data)
+    -- Try to extract milestone thresholds from API data
+    local thresholds = {}
+    
+    if data and data.milestones then
+        for i, milestone in ipairs(data.milestones) do
+            -- Check for the actual field name from API
+            local threshold = milestone.requiredContributionAmount or milestone.threshold or milestone.progressRequired or milestone.requiredProgress
+            if threshold and type(threshold) == "number" and threshold > 0 then
+                table.insert(thresholds, threshold)
+            end
+        end
+    end
+    
+    -- If we got valid thresholds from API, use them
+    if #thresholds > 0 then
+        return thresholds
+    end
+    
+    -- Fallback to hardcoded values
+    return MILESTONE_THRESHOLDS
+end
+
+function EndeavorTracker:CalculateXPNeeded(currentXP, thresholds)
     if not currentXP then return nil end
     
+    -- Use provided thresholds or fallback to default
+    local milestones = thresholds or MILESTONE_THRESHOLDS
+    
     -- Find next milestone
-    for i, threshold in ipairs(MILESTONE_THRESHOLDS) do
+    for i, threshold in ipairs(milestones) do
         if currentXP < threshold then
             local xpNeeded = threshold - currentXP
-            return xpNeeded, i, threshold
+            return xpNeeded, i, threshold, milestones
         end
     end
     
     -- Max milestone reached
-    return 0, #MILESTONE_THRESHOLDS, MILESTONE_THRESHOLDS[#MILESTONE_THRESHOLDS]
+    return 0, #milestones, milestones[#milestones], milestones
 end
 
 function EndeavorTracker:HookEndeavorsFrame()
@@ -152,7 +174,15 @@ function EndeavorTracker:HookEndeavorsFrame()
             xpInfo:SetAllPoints(overlay)
             xpInfo:SetWordWrap(false)
             xpInfo:SetNonSpaceWrap(false)
-            xpInfo:SetTextColor(1, 0.82, 0)
+            
+            -- Use color from settings if available
+            if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
+                local r, g, b = EndeavorTrackerUI:GetColor()
+                xpInfo:SetTextColor(r, g, b)
+            else
+                xpInfo:SetTextColor(1, 0.82, 0)
+            end
+            
             xpInfo:SetText("Hover over the progress bar")
             
             -- Start hidden, show on hover
@@ -211,6 +241,12 @@ function EndeavorTracker:UpdateXPDisplay()
         return
     end
     
+    -- Update text color from settings
+    if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
+        local r, g, b = EndeavorTrackerUI:GetColor()
+        frame.ET_XPInfo:SetTextColor(r, g, b)
+    end
+    
     local data = self:GetCurrentProgress()
     if not data then
         frame.ET_XPInfo:SetText("")
@@ -218,11 +254,54 @@ function EndeavorTracker:UpdateXPDisplay()
     end
     
     local currentXP = data.currentXP or 0
-    local xpNeeded, milestone, threshold = self:CalculateXPNeeded(currentXP)
+    
+    -- Get milestone thresholds from API or use fallback
+    local thresholds = self:GetMilestoneThresholds(data)
+    local xpNeeded, milestone, threshold, usedThresholds = self:CalculateXPNeeded(currentXP, thresholds)
     
     if xpNeeded and xpNeeded > 0 then
-        local text = string.format("Next Milestone: %d / %d (%d XP needed)", 
-            currentXP, threshold, xpNeeded)
+        -- Get the text format preference
+        local textFormat = "detailed"
+        if EndeavorTrackerUI and EndeavorTrackerUI.GetTextFormat then
+            textFormat = EndeavorTrackerUI:GetTextFormat()
+        end
+        
+        -- Calculate percentage from previous milestone to next
+        local completedMilestone = milestone - 1
+        local previousThreshold = completedMilestone > 0 and MILESTONE_THRESHOLDS[completedMilestone] or 0
+        local xpFromPrevious = currentXP - previousThreshold
+        local xpBetweenMilestones = threshold - previousThreshold
+        local percentage = math.floor((xpFromPrevious / xpBetweenMilestones) * 100)
+        
+        -- Format text based on selected format
+        local text
+        if textFormat == "simple" then
+            -- Show both completed and target milestone for clarity
+            if completedMilestone > 0 then
+                text = string.format("%d XP to reach Milestone %d (completed: M%d)", 
+                    xpNeeded, milestone, completedMilestone)
+            else
+                text = string.format("%d XP to reach Milestone %d", xpNeeded, milestone)
+            end
+        elseif textFormat == "progress" then
+            text = string.format("M%d Progress: %d/%d (%d%%) - %d XP to go", 
+                milestone, xpFromPrevious, xpBetweenMilestones, percentage, xpNeeded)
+        elseif textFormat == "short" then
+            text = string.format("To Milestone %d: %d XP remaining", milestone, xpNeeded)
+        elseif textFormat == "minimal" then
+            text = string.format("%d XP to next milestone", xpNeeded)
+        elseif textFormat == "percentage" then
+            text = string.format("%d%% to M%d - %d XP needed", 
+                percentage, milestone, xpNeeded)
+        elseif textFormat == "nextfinal" then
+            local xpToFinal = 1000 - currentXP
+            text = string.format("Next: %d XP | Final: %d XP", xpNeeded, xpToFinal)
+        else -- detailed (default)
+            -- Show progress from previous milestone to next
+            text = string.format("Milestone %d: %d / %d (%d XP needed)", 
+                milestone, xpFromPrevious, xpBetweenMilestones, xpNeeded)
+        end
+        
         frame.ET_XPInfo:SetText(text)
     elseif xpNeeded == 0 then
         frame.ET_XPInfo:SetText("All milestones completed!")
@@ -280,17 +359,67 @@ function EndeavorTracker:Initialize()
     end)
 end
 
--- Slash command for manual refresh
+-- Slash commands
 SLASH_ENDEAVORTRACKER1 = "/endeavortracker"
 SLASH_ENDEAVORTRACKER2 = "/et"
 SlashCmdList["ENDEAVORTRACKER"] = function(msg)
-    if C_NeighborhoodInitiative then
-        C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+    -- Trim whitespace and convert to lowercase
+    msg = msg:lower():trim()
+    
+    if msg == "refresh" or msg == "reload" or msg == "update" then
+        -- Manual refresh
+        print("Endeavor Tracker: Refreshing display...")
+        if C_NeighborhoodInitiative then
+            C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+        end
+        EndeavorTracker:HookEndeavorsFrame()
+        C_Timer.After(0.5, function()
+            EndeavorTracker:UpdateXPDisplay()
+            print("Endeavor Tracker: Refresh complete")
+        end)
+    elseif msg == "debug" or msg == "info" then
+        -- Show debug info
+        local data = EndeavorTracker:GetCurrentProgress()
+        if data then
+            print("=== Endeavor Tracker Debug Info ===")
+            print("Current XP: " .. (data.currentXP or 0))
+            print("Max Progress: " .. (data.maxProgress or 0))
+            print("Season: " .. (data.seasonName or "Unknown"))
+            if data.milestones then
+                print("Milestones from API (" .. #data.milestones .. " total):")
+                for i, milestone in ipairs(data.milestones) do
+                    print("  Milestone " .. i .. ":")
+                    -- Dump all fields in the milestone table
+                    for key, value in pairs(milestone) do
+                        print("    " .. tostring(key) .. " = " .. tostring(value))
+                    end
+                end
+            else
+                print("No milestone data available from API")
+            end
+            print("=================================")
+        else
+            print("Endeavor Tracker: No data available")
+        end
+    else
+        -- Default: open settings
+        if EndeavorTrackerUI and EndeavorTrackerUI.OpenSettings then
+            EndeavorTrackerUI:OpenSettings()
+        else
+            print("Endeavor Tracker: Settings not available yet. Please open via Game Menu → Options → AddOns → Endeavor Tracker")
+        end
     end
-    EndeavorTracker:HookEndeavorsFrame()
-    C_Timer.After(0.5, function()
-        EndeavorTracker:UpdateXPDisplay()
-    end)
+end
+
+-- Slash command to open settings (kept for compatibility)
+SLASH_ENDEAVORTRACKERCONFIG1 = "/etconfig"
+SLASH_ENDEAVORTRACKERCONFIG2 = "/etset"
+SlashCmdList["ENDEAVORTRACKERCONFIG"] = function(msg)
+    if EndeavorTrackerUI and EndeavorTrackerUI.OpenSettings then
+        EndeavorTrackerUI:OpenSettings()
+    else
+        print("Endeavor Tracker: Settings not available yet. Please open via Game Menu → Options → AddOns → Endeavor Tracker")
+    end
 end
 
 -- Initialize on load
