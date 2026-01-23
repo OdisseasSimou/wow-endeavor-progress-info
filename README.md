@@ -31,9 +31,9 @@ A World of Warcraft addon that displays XP progress for housing endeavor milesto
 
 ### Task XP Tooltips
 - Hover over any task in the Endeavors tab to see its contribution XP value
-- The addon automatically caches XP data from your activity log (most recent completion)
+- The addon automatically reads XP data from your activity log (most recent completion)
 - Tooltips show the task name and contribution amount (e.g., "0.65 XP")
-- Cache refreshes every 5 minutes or when using `/et refresh`
+- Data updates automatically when the activity log changes
 
 ## Commands
 
@@ -99,7 +99,7 @@ The addon follows an MVC (Model-View-Controller) architecture:
 
 - **SavedVariables**: `EndeavorTrackerDB` stores color and text format preferences
 - **Task XP Cache**: Built from activity log using most recent completion time for each task
-- **Cache Duration**: 5 minutes (can be manually refreshed with `/et refresh`)
+- **Cache Behavior**: Rebuilds automatically from activity log when needed for real-time accuracy
 - **Percentage Calculations**: Shows progress between milestones (not total progress)
 - **Decimal Precision**: All numeric values display with 2 decimal places
 - **Tooltip Enhancement**: Automatically detects and enhances task tooltips without duplicate entries
@@ -107,8 +107,7 @@ The addon follows an MVC (Model-View-Controller) architecture:
 ## Known Issues
 
 - The XP overlay only appears on hover (intentional design to keep UI clean)
-- Task tooltips show XP based on your most recent completion of each task
-- If tooltips show unexpected values, use `/et refresh` to rebuild the cache
+- Task tooltips show XP based on your most recent completion of each task from the activity log
 - If the progress bar is not detected automatically, try `/et refresh`
 
 ## Support

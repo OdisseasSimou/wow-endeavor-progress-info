@@ -85,11 +85,7 @@ function EndeavorTrackerCore:CalculateXPNeeded(currentXP, milestones)
 end
 
 function EndeavorTrackerCore:BuildTaskXPCache()
-    -- Cache task XP data for 5 minutes
-    if (GetTime() - self.taskXPCacheTime) < 300 and next(self.taskXPCache) then
-        return self.taskXPCache
-    end
-    
+    -- Always rebuild cache from fresh activity log data
     local cache = {}
     
     if not C_NeighborhoodInitiative then

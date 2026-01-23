@@ -2,6 +2,66 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.0.6] - 2026-01-23
+
+### Added
+- **Leaderboard Command** (`/et leaderboard`, `/et top`, `/et top10`)
+  - Shows top 10 contributors based on activity log
+  - Aggregates total XP contribution per player
+  - Displays player rankings with total XP amounts
+  - Shows total number of activity log entries analyzed
+
+- **Neighborhood Scanner** (`/et neighborhood`, `/et neighborhoods`, `/et nbh`)
+  - Scans all neighborhood IDs (1-100) for active initiatives
+  - Displays information for each found neighborhood:
+    - Neighborhood title and ID
+    - Current progress vs required progress
+    - Milestone completion status
+    - Active neighborhood indicator
+  - Automatically resets to active neighborhood after scanning
+
+- **Task Log Debug Command** (`/et tasklog`, `/et logdebug`)
+  - Shows detailed activity log analysis
+  - Lists all unique tasks with their details:
+    - Task ID, name, and XP contribution
+    - Completion count from activity log
+    - Most recent player who completed the task
+  - Formatted table output for easy reading
+  - Displays total number of unique tasks
+
+### Changed
+- **Task XP Cache Behavior** (`Core.lua`)
+  - Removed 5-minute cache duration limit
+  - Now always rebuilds from fresh activity log data
+  - Ensures real-time accuracy of task XP values
+  - Eliminates stale cache issues
+
+- **README Documentation**
+  - Updated cache behavior description (no longer time-based)
+  - Clarified that data updates automatically from activity log
+  - Removed references to 5-minute cache expiration
+  - Simplified Known Issues section
+
+### Improved
+- **Command System**
+  - Added three new debug/information commands
+  - Better organization of command handling logic
+  - More informative output formatting
+  - Enhanced data visualization with structured reports
+
+- **Activity Log Usage**
+  - More comprehensive utilization of activity log data
+  - Player name aggregation for leaderboards
+  - Neighborhood switching for multi-neighborhood support
+  - Task-level detail inspection
+
+### Files Modified
+- `Core.lua` - Removed time-based cache expiration logic
+- `EndeavorTracker.lua` - Added leaderboard, neighborhood scanner, and task log commands
+- `README.md` - Updated cache behavior documentation
+
+---
+
 ## [1.0.5] - 2026-01-23
 
 ### Added
