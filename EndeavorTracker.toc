@@ -1,6 +1,6 @@
 ## Interface: 110207, 120000
 ## Title: Endeavor Tracker
-## Author: You
+## Author: OdisseasSimou
 ## Version: 1.0
 ## Notes: Shows XP needed for next housing endeavor milestone on hover
 ## SavedVariables: EndeavorTrackerDB

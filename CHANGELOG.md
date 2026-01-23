@@ -63,8 +63,7 @@ All notable changes to Endeavor Tracker addon will be documented in this file.
 
 - **TOC File Updates**
   - Added `SavedVariables: EndeavorTrackerDB` for persistent settings
-  - Added `UI.lua` to file load order
-  - Changed author field from specific name to generic "You"
+  - Added `UI.lua` to file load order 
 
 ### Improved
 - **Command Handling**
