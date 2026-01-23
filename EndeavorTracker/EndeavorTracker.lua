@@ -135,7 +135,7 @@ function EndeavorTracker:HookEndeavorsFrame()
         -- Check if overlay already exists, if so just reuse it
         if frame.ET_XPInfoFrame and frame.ET_XPInfo then
             -- Already exists, just update position if needed
-            frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 0, -5)
+            frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
         else
             -- Create an overlay frame with tooltip strata
             local overlay = CreateFrame("Frame", nil, UIParent)
@@ -144,7 +144,7 @@ function EndeavorTracker:HookEndeavorsFrame()
             overlay:SetSize(1000, 60)
             
             -- Position relative to the target
-            overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 0, -5)
+            overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
             
             -- Create the text on the overlay
             local xpInfo = overlay:CreateFontString(nil, "OVERLAY")
