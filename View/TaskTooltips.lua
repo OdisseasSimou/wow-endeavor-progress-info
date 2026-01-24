@@ -125,8 +125,11 @@ function EndeavorTrackerTooltips:EnhanceTaskTooltip(tooltip)
     for i = 1, numLines do
         local leftLine = _G[tooltipName .. "TextLeft" .. i]
         if leftLine then
-            local text = leftLine:GetText()
-            if text and text == "Contribution:" then
+            local success, result = pcall(function()
+                local text = leftLine:GetText()
+                return text and text == "Contribution:"
+            end)
+            if success and result then
                 -- Already enhanced, don't add again
                 return
             end
@@ -137,11 +140,16 @@ function EndeavorTrackerTooltips:EnhanceTaskTooltip(tooltip)
     for i = 1, numLines do
         local line = _G[tooltipName .. "TextLeft" .. i]
         if line then
-            local text = line:GetText()
-            if text then
+            local success, text = pcall(function()
+                return line:GetText()
+            end)
+            if success and text then
                 -- Check if this text matches any task name in our cache
                 for taskID, taskData in pairs(EndeavorTrackerCore.taskXPCache) do
-                    if text == taskData.name or text:find(taskData.name, 1, true) then
+                    local matchSuccess, isMatch = pcall(function()
+                        return text == taskData.name or text:find(taskData.name, 1, true)
+                    end)
+                    if matchSuccess and isMatch then
                         -- Add XP info
                         tooltip:AddLine(" ")
                         tooltip:AddDoubleLine("Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)

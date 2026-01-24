@@ -111,6 +111,7 @@ The addon follows an MVC (Model-View-Controller) architecture:
 - **Percentage Calculations**: Shows progress between milestones (not total progress)
 - **Decimal Precision**: All numeric values display with 2 decimal places
 - **Tooltip Enhancement**: Automatically detects and enhances task tooltips without duplicate entries
+- **Protected Value Handling**: Uses pcall() wrapping for safe tooltip text access during combat/raids where frame data is protected by WoW
 - **Multi-Neighborhood API**: Uses C_Housing.HouseFinderRequestNeighborhoods() to enumerate accessible neighborhoods
 - **Real-Time Events**: Listens to NEIGHBORHOOD_LIST_UPDATED and HOUSE_FINDER_NEIGHBORHOOD_DATA_RECIEVED events
 - **Event Listeners**: Monitors 8 events for real-time updates (NEIGHBORHOOD_INITIATIVE_UPDATED, INITIATIVE_ACTIVITY_LOG_UPDATED, INITIATIVE_TASK_COMPLETED, INITIATIVE_COMPLETED, INITIATIVE_TASKS_TRACKED_LIST_CHANGED, NEIGHBORHOOD_LIST_UPDATED, HOUSE_FINDER_NEIGHBORHOOD_DATA_RECIEVED, PLAYER_ENTERING_WORLD)

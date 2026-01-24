@@ -2,6 +2,32 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.1] - 2026-01-24
+
+### Fixed
+- **Protected Frame Handling** (`TaskTooltips.lua`)
+  - Added `pcall()` wrapping for tooltip text access to prevent errors during combat/raids
+  - Safely handles protected frame data when accessing tooltip text
+  - Prevents addon from breaking when tooltips are shown in protected contexts
+  - Applies protection to both duplicate detection and task name matching
+
+### Improved
+- **Error Resilience**
+  - Tooltip enhancement now gracefully handles WoW's protected value restrictions
+  - No more "cannot read a protected value" errors during combat or raids
+  - Maintains full functionality in non-protected contexts
+
+### Technical Details
+- Wrapped `GetText()` calls with `pcall()` for safe access to potentially protected values
+- Three protected access points: duplicate line detection and task name comparison
+- Documentation updated in README to reflect protected value handling
+
+### Files Modified
+- `View/TaskTooltips.lua` - Added pcall() protection for tooltip text access
+- `README.md` - Added Protected Value Handling to Technical Details section
+
+---
+
 ## [1.1.0] - 2026-01-24
 
 ### Added
