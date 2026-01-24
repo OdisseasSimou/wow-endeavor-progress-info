@@ -1,17 +1,19 @@
 # Endeavor Tracker
 
-A World of Warcraft addon that displays XP progress for housing endeavor milestones with customizable display options and automatic task XP tooltips.
+A World of Warcraft addon that displays XP progress for housing endeavor milestones with customizable display options and automatic tooltips.
 
 ## Features
 
 - **XP Progress Display** - Shows XP needed for the next milestone on hover over the progress bar
+- **House Finder Tooltips** - Hover neighborhood entries in Blizzard's House Finder to see endeavor progress
 - **Task XP Tooltips** - Automatically displays contribution XP values when hovering over tasks
 - **7 Display Formats** - Choose from detailed, simple, progress bar, short, minimal, percentage, or next & final formats
 - **12 Color Presets** - Customize text color with preset options or custom color picker
 - **Decimal Precision** - All values display with 1 decimal place for accuracy
 - **Dynamic API Integration** - Automatically reads milestone data from the game API
-- **Clean UI** - Non-intrusive tooltip-style overlay that appears only when needed
+- **Clean UI** - Non-intrusive tooltip-style overlays that appear only when needed
 - **Automatic Updates** - Refreshes when you earn XP or complete tasks
+- **MVC Architecture** - Clean, maintainable code structure following Model-View-Controller pattern
 
 ## Installation
 
@@ -25,9 +27,14 @@ A World of Warcraft addon that displays XP progress for housing endeavor milesto
 ## Usage
 
 ### XP Progress Display
-1. Open the Housing Dashboard (Press `Shift+P` or click the garrison icon)
+1. Open the Housing Dashboard (Press `H` or click the Housing icon)
 2. Navigate to the **Endeavors** tab
 3. Hover over the endeavor progress bar to see your XP progress
+
+### House Finder Tooltips
+1. Open the House Finder (social menu or housing button)
+2. Hover over any neighborhood in the list
+3. View the current endeavor name, milestone progress, and completion percentage
 
 ### Task XP Tooltips
 - Hover over any task in the Endeavors tab to see its contribution XP value
@@ -38,7 +45,6 @@ A World of Warcraft addon that displays XP progress for housing endeavor milesto
 ## Commands
 
 - `/et` - Open settings panel
-- `/et refresh` - Manually refresh the XP display and task cache
 
 ## Settings
 
@@ -91,9 +97,11 @@ The addon follows an MVC (Model-View-Controller) architecture:
 
 ## Compatibility
 
-- **WoW Version**: 12.0.0 (The War Within)
+- **WoW Version**: 12.0.1 (The War Within)
 - **Interface**: 110207, 120000
-- **API**: Uses `C_NeighborhoodInitiative`
+- **APIs**: Uses `C_NeighborhoodInitiative` and `C_Housing` APIs
+  - C_NeighborhoodInitiative for active neighborhood initiative data
+  - C_Housing for multi-neighborhood enumeration and discovery
 
 ## Technical Details
 
@@ -103,6 +111,9 @@ The addon follows an MVC (Model-View-Controller) architecture:
 - **Percentage Calculations**: Shows progress between milestones (not total progress)
 - **Decimal Precision**: All numeric values display with 2 decimal places
 - **Tooltip Enhancement**: Automatically detects and enhances task tooltips without duplicate entries
+- **Multi-Neighborhood API**: Uses C_Housing.HouseFinderRequestNeighborhoods() to enumerate accessible neighborhoods
+- **Real-Time Events**: Listens to NEIGHBORHOOD_LIST_UPDATED and HOUSE_FINDER_NEIGHBORHOOD_DATA_RECIEVED events
+- **Event Listeners**: Monitors 8 events for real-time updates (NEIGHBORHOOD_INITIATIVE_UPDATED, INITIATIVE_ACTIVITY_LOG_UPDATED, INITIATIVE_TASK_COMPLETED, INITIATIVE_COMPLETED, INITIATIVE_TASKS_TRACKED_LIST_CHANGED, NEIGHBORHOOD_LIST_UPDATED, HOUSE_FINDER_NEIGHBORHOOD_DATA_RECIEVED, PLAYER_ENTERING_WORLD)
 
 ## Known Issues
 

@@ -1,5 +1,5 @@
--- Display.lua
--- View: XP progress display overlay on endeavors frame
+-- ProgressOverlay.lua
+-- View: XP progress display overlay on neighborhood initiative frame
 
 local EndeavorTrackerDisplay = {}
 
@@ -42,17 +42,35 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
     
     -- Collect all candidates for positioning
     local allCandidates = {}
+    local visited = {}
+    local function AddCandidate(label, obj, depth)
+        if not obj or type(obj) ~= "table" then return end
+        if not obj.GetObjectType then return end
+        local objType = obj:GetObjectType()
+        if not objType then return end
+        local objName = obj.GetName and obj:GetName() or "unnamed"
+        local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
+        local nameMatch = objName:match("Progress") or objName:match("Bar")
+        if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
+            if labelMatch or nameMatch or objType == "StatusBar" then
+                table.insert(allCandidates, {key = label or "", obj = obj, type = objType, name = objName, depth = depth})
+            end
+        end
+    end
     local function CollectAll(parent, depth)
-        if depth > 10 then return end
+        if depth > 10 or not parent or visited[parent] then return end
+        visited[parent] = true
         for k, v in pairs(parent) do
             if type(v) == "table" then
-                if type(k) == "string" and (k:match("Progress") or k:match("Bar")) then
-                    if v.GetObjectType and (v:GetObjectType() == "StatusBar" or v:GetObjectType() == "Frame" or v:GetObjectType() == "Slider") then
-                        local objName = v.GetName and v:GetName() or "unnamed"
-                        table.insert(allCandidates, {key = k, obj = v, type = v:GetObjectType(), name = objName, depth = depth})
-                    end
-                end
+                AddCandidate(k, v, depth)
                 CollectAll(v, depth + 1)
+            end
+        end
+        if parent.GetChildren then
+            local children = { parent:GetChildren() }
+            for _, child in ipairs(children) do
+                AddCandidate(child.GetName and child:GetName() or "child", child, depth)
+                CollectAll(child, depth + 1)
             end
         end
     end
@@ -66,12 +84,28 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
         end
     end
     
-    -- Use the 4th deep candidate (index 4) if available
-    local targetCandidate = nil
-    if #deepCandidates >= 4 then
-        targetCandidate = deepCandidates[4]
-    elseif #allCandidates > 0 then
-        targetCandidate = allCandidates[1]
+    local function PickDeepest(candidates)
+        local best = nil
+        for _, c in ipairs(candidates) do
+            if not best or c.depth > best.depth then
+                best = c
+            end
+        end
+        return best
+    end
+    local statusBarCandidates = {}
+    for _, c in ipairs(allCandidates) do
+        if c.type == "StatusBar" then
+            table.insert(statusBarCandidates, c)
+        end
+    end
+
+    local targetCandidate = PickDeepest(statusBarCandidates)
+    if not targetCandidate then
+        targetCandidate = PickDeepest(deepCandidates)
+    end
+    if not targetCandidate then
+        targetCandidate = PickDeepest(allCandidates)
     end
     
     -- Create XP info on the target using a tooltip-level overlay frame
@@ -81,21 +115,19 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
             -- Already exists, just update position if needed
             frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
         else
-            -- Create an overlay frame with tooltip strata
-            local overlay = CreateFrame("Frame", nil, UIParent)
+            -- Create an overlay on the main frame (not the bar) so it is not clipped by the status bar
+            local overlay = CreateFrame("Frame", nil, frame)
             overlay:SetFrameStrata("TOOLTIP")
-            overlay:SetFrameLevel(10000)
-            overlay:SetSize(1000, 60)
-            
-            -- Position relative to the target
-            overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
+            overlay:SetFrameLevel(targetCandidate.obj:GetFrameLevel() + 5)
+            overlay:SetSize(500, 40)
+            overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -10)
             
             -- Create the text on the overlay
             local xpInfo = overlay:CreateFontString(nil, "OVERLAY")
-            xpInfo:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
-            xpInfo:SetAllPoints(overlay)
-            xpInfo:SetWordWrap(false)
-            xpInfo:SetNonSpaceWrap(false)
+            xpInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+            xpInfo:SetPoint("CENTER", overlay, "CENTER")
+            xpInfo:SetWordWrap(true)
+            xpInfo:SetMaxLines(2)
             
             -- Use color from settings if available
             if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
@@ -110,17 +142,16 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
             -- Start hidden, show on hover
             overlay:Hide()
             
-            -- Hook hover events on the progress bar
-            if targetCandidate.obj:HasScript("OnEnter") then
-                targetCandidate.obj:HookScript("OnEnter", function()
-                    overlay:Show()
-                end)
+            -- Hover handlers
+            local function ShowOverlay()
+                overlay:Show()
             end
-            if targetCandidate.obj:HasScript("OnLeave") then
-                targetCandidate.obj:HookScript("OnLeave", function()
-                    overlay:Hide()
-                end)
+            local function HideOverlay()
+                overlay:Hide()
             end
+            targetCandidate.obj:EnableMouse(true)
+            targetCandidate.obj:HookScript("OnEnter", ShowOverlay)
+            targetCandidate.obj:HookScript("OnLeave", HideOverlay)
             
             frame.ET_XPInfo = xpInfo
             frame.ET_XPInfoFrame = overlay

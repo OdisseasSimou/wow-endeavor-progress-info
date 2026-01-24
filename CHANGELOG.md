@@ -2,6 +2,104 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.0] - 2026-01-24
+
+### Added
+- **Code Restructuring - MVC Architecture**
+  - Refactored codebase into Model-View-Controller pattern
+  - Better code organization and maintainability
+  - Clean separation of concerns:
+    - Model: `Core.lua` - Data layer, API interactions, calculations
+    - View: `ProgressOverlay.lua`, `HouseFinderTooltips.lua`, `TaskTooltips.lua`, `SettingsPanel.lua` - UI layer
+    - Controller: `EndeavorTracker.lua` - Business logic, event handling, commands
+
+- **House Finder Tooltips** (`HouseFinderTooltips.lua`)
+  - Hover over neighborhood entries in Blizzard's House Finder to see endeavor progress
+  - Displays current endeavor name and milestone progress
+  - Shows completion percentage for each neighborhood
+  - Real-time updates via `NEIGHBORHOOD_LIST_UPDATED` and `HOUSE_FINDER_NEIGHBORHOOD_DATA_RECIEVED` events
+  - Multi-neighborhood support using `C_Housing` API
+
+- **Settings Panel UI** (`SettingsPanel.lua`)
+  - Comprehensive settings interface for customization
+  - Integrated with WoW's built-in settings system
+  - Professional UI design with backdrops and styling
+
+- **Text Format Presets**
+  - 7 different text format options for XP tooltips:
+    - Detailed (Default): "Milestone 2: 125 / 250 (125 XP needed)"
+    - Simple: "125 XP to reach Milestone 2 (completed: M1)"
+    - Progress Bar Style: "M2 Progress: 125/250 (50%) - 125 XP to go"
+    - Short: "To Milestone 2: 125 XP remaining"
+    - Minimal: "125 XP to next milestone"
+    - Percentage Focus: "50% to M2 - 125 XP needed"
+    - Next & Final: "Next: 125 XP | Final: 875 XP"
+  - Preset buttons with example tooltips on hover
+  - Real-time display updates when format changes
+
+- **Color Customization**
+  - Custom color picker for XP tooltip text
+  - 12 color presets:
+    - Gold (Default), Bright Gold, White, Light Blue
+    - Cyan, Green, Light Green, Orange
+    - Red, Pink, Purple, Yellow
+  - Color preview box showing selected color
+  - Reset to Default button
+  - Persistent color storage in saved variables
+
+- **Settings Persistence**
+  - Saved variables system (`EndeavorTrackerDB`)
+  - Persists color and text format preferences between sessions
+  - Automatic initialization of defaults on first load
+
+### Changed
+- **Code Organization** 
+  - Refactored files into organized folder structure (Model/, View/, Controller/)
+  - Updated `.toc` file with new directory structure and comments
+  - Improved code comments and documentation in `.toc` file
+
+- **Settings System Enhancement** (`EndeavorTracker.lua`)
+  - Now references new SettingsPanel.lua for UI handling
+  - Updated initialization to create settings panel on addon load
+  - Updated help message to reflect settings access
+
+- **README Documentation**  
+  - Added House Finder feature documentation
+  - Updated API documentation to reference both `C_NeighborhoodInitiative` and `C_Housing`
+  - Updated Housing Dashboard keyboard shortcut (H instead of Shift+P)
+  - Added MVC Architecture to features list
+  - Added detailed technical documentation for event listeners and API usage
+
+### Improved
+- **User Interface**
+  - Better organization of customization options
+  - Clearer visual feedback for selected options
+  - Tooltip examples help users preview format changes
+
+- **Code Quality**
+  - Modular, maintainable architecture with MVC pattern
+  - Better separation of concerns
+  - More organized folder structure
+  - Enhanced code documentation and comments
+
+- **Multi-Neighborhood Support**
+  - Integrated `C_Housing` API for neighborhood enumeration
+  - Automatic neighborhood discovery and updates
+  - Real-time event handling for neighborhood changes
+
+### Release Notes
+
+Version 1.1.0 represents a significant modernization of Endeavor Tracker with a complete architectural refactor and exciting new features. The codebase has been restructured following the Model-View-Controller (MVC) pattern, making the addon more maintainable and extensible for future development.
+
+The star feature of this release is the new **House Finder Tooltips**, which brings endeavor progress information directly to the House Finder interface. Players can now hover over neighborhoods in the House Finder to instantly see the current endeavor milestone progress and completion percentage, making neighborhood selection more informed and efficient.
+
+Additionally, the settings system has been significantly enhanced with improved UI/UX, giving users full control over how they want to display their XP information. All customizations are persistent and take effect immediately.
+
+This release focuses on code quality and user experience improvements while laying the groundwork for future feature additions.
+
+---
+
+
 ## [1.0.6] - 2026-01-23
 
 ### Added

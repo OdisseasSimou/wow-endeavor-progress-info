@@ -3,6 +3,10 @@
 
 EndeavorTrackerUI = {}
 
+-- Keep a reference to the real print and silence all other prints in this module
+local _print = _G.print
+local print = function(...) end
+
 -- Store the settings category for opening
 EndeavorTrackerUI.settingsCategory = nil
 
@@ -73,8 +77,8 @@ function EndeavorTrackerUI:SetColor(r, g, b)
     EndeavorTrackerDB.color = {r = r, g = g, b = b}
     
     -- Update the display with current color
-    if EndeavorTracker and EndeavorTracker.UpdateXPDisplay then
-        EndeavorTracker:UpdateXPDisplay()
+    if EndeavorTrackerDisplay and EndeavorTrackerDisplay.UpdateXPDisplay then
+        EndeavorTrackerDisplay:UpdateXPDisplay()
     end
 end
 
@@ -92,8 +96,8 @@ function EndeavorTrackerUI:SetTextFormat(format)
     EndeavorTrackerDB.textFormat = format
     
     -- Update the display with new format
-    if EndeavorTracker and EndeavorTracker.UpdateXPDisplay then
-        EndeavorTracker:UpdateXPDisplay()
+    if EndeavorTrackerDisplay and EndeavorTrackerDisplay.UpdateXPDisplay then
+        EndeavorTrackerDisplay:UpdateXPDisplay()
     end
 end
 
@@ -343,6 +347,6 @@ uiFrame:SetScript("OnEvent", function(self, event, addon)
     if addon == "EndeavorTracker" then
         EndeavorTrackerUI:InitializeSettings()
         EndeavorTrackerUI:CreateSettingsPanel()
-        print("Endeavor Tracker: Loaded! Commands: /et (settings) | /et refresh")
+        _print("Endeavor Tracker: Loaded! Commands: /et (settings) | /et refresh")
     end
 end)
