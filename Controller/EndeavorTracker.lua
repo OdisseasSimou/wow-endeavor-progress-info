@@ -310,7 +310,7 @@ SlashCmdList["ENDEAVORTRACKER"] = function(msg)
     elseif msg == "debug" or msg == "cache" then
         -- Debug: Show cache state
         if EndeavorTrackerCore then
-            print("|cFFFFFF00=== Cache Debug ==="|r")
+            print("|cFFFFFF00=== Cache Debug ===|r")
             print("Task XP Cache entries: " .. EndeavorTrackerCore:CountTableEntries(EndeavorTrackerCore.taskXPCache or {}))
             print("Cache time: " .. (EndeavorTrackerCore.taskXPCacheTime or 0))
         end
