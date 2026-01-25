@@ -2,6 +2,11 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.3] - 2026-01-25
+
+### Bugfix
+- Fixed lua error due to leftover quote
+
 ## [1.1.2] - 2026-01-25
 
 ### Added
