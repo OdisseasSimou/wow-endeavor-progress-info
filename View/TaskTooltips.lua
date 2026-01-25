@@ -86,7 +86,7 @@ function EndeavorTrackerTooltips:HookSingleFrame(frame)
                 local taskData = EndeavorTrackerCore.taskXPCache[taskID]
                 GameTooltip:SetText(taskData.name, 1, 1, 1)
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddDoubleLine("Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
+                GameTooltip:AddDoubleLine("Endeavor Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
             else
                 -- Show frame info for debugging
                 GameTooltip:SetText("Task Frame", 1, 1, 1)
@@ -127,7 +127,7 @@ function EndeavorTrackerTooltips:EnhanceTaskTooltip(tooltip)
         if leftLine then
             local success, result = pcall(function()
                 local text = leftLine:GetText()
-                return text and text == "Contribution:"
+                return text and text == "Endeavor Contribution:"
             end)
             if success and result then
                 -- Already enhanced, don't add again
@@ -152,7 +152,7 @@ function EndeavorTrackerTooltips:EnhanceTaskTooltip(tooltip)
                     if matchSuccess and isMatch then
                         -- Add XP info
                         tooltip:AddLine(" ")
-                        tooltip:AddDoubleLine("Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
+                        tooltip:AddDoubleLine("Endeavor Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
                         tooltip:Show()
                         return
                     end
@@ -186,7 +186,7 @@ function EndeavorTrackerTooltips:ShowTaskTooltip(taskFrame)
         GameTooltip:SetOwner(taskFrame, "ANCHOR_RIGHT")
         GameTooltip:AddLine(taskData.name, 1, 1, 1)
         GameTooltip:AddLine(" ")
-        GameTooltip:AddDoubleLine("Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Endeavor Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
         GameTooltip:Show()
     end
 end

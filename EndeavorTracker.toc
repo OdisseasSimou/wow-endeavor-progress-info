@@ -7,6 +7,9 @@
 
 # Model - Data layer (API interactions, calculations, caching)
 Model\Core.lua
+Model\Progress.lua
+Model\Tasks.lua
+Model\Neighborhoods.lua
 
 # View - UI layer (display, tooltips, settings panel)
 View\ProgressOverlay.lua

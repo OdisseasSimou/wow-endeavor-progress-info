@@ -2,6 +2,73 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.2] - 2026-01-25
+
+### Added
+- **Modular Code Architecture**
+  - Split Model layer into separate specialized modules:
+    - `Progress.lua` - Milestone thresholds and XP calculations
+    - `Tasks.lua` - Task XP cache management and tracking operations
+    - `Neighborhoods.lua` - Neighborhood initiative data and housing API helpers
+  - Updated `EndeavorTracker.toc` to load new Model files in correct order
+  - Improved code organization and maintainability
+
+### Changed
+- **Core.lua Refactoring**
+  - Reduced `Core.lua` to base connector with shared caches only
+  - Moved all neighborhood-related functions to `Neighborhoods.lua`
+  - Moved all task tracking functions to `Tasks.lua`
+  - Moved progress calculation functions to `Progress.lua`
+  - Maintains backward compatibility with global `EndeavorTrackerCore` export
+  - Cache variables now use `or` operator for safer initialization
+
+- **Controller Simplification** (`EndeavorTracker.lua`)
+  - Removed debug and neighborhood browsing slash commands:
+    - `/et neighborhoods`, `/et nbh` - moved to dedicated module
+    - `/et nbhdebug`, `/et nbd` - debug commands removed
+    - `/et tracked`, `/et mytasks` - task listing removed
+    - `/et requirements`, `/et reqs` - requirements check removed
+    - `/et list`, `/et allnbh` - neighborhood list removed
+    - `/et show`, `/et show list` - cached list display removed
+  - Reduced command handler from 507 lines to 307 lines
+  - Focus on core leaderboard and task logging functionality
+
+- **UI Improvements**
+  - Standardized tooltip text in `TaskTooltips.lua`: Changed "Contribution:" to "Endeavor Contribution:"
+  - Applies consistently across all tooltip display methods
+  - More descriptive XP contribution label
+
+### Improved
+- **Documentation** (`README.md`)
+  - Reorganized Commands section with clear categories: Settings, Data Management, Leaderboard, Debug
+  - Added slash command aliases and descriptions
+  - Updated Code Structure section with detailed module breakdown
+  - Added debugging tips section with specific commands
+  - Clarified functionality and command purposes
+
+### Technical Details
+- Model layer now follows single-responsibility principle with specialized modules
+- All cache initialization prevents nil reference errors with safer patterns
+- Reduced controller complexity for easier maintenance and future extensions
+- Better separation of concerns: Core connector, Progress logic, Task management, Neighborhood data
+
+### Files Modified
+- `Model/Core.lua` - Refactored to base connector (131 lines → 32 lines)
+- `Controller/EndeavorTracker.lua` - Removed 200+ lines of debug/neighborhood commands
+- `EndeavorTracker.toc` - Added new Model file loads
+- `View/TaskTooltips.lua` - Standardized tooltip labels
+- `README.md` - Improved documentation and command reference
+- (New) `Model/Progress.lua` - Milestone and XP calculation functions
+- (New) `Model/Tasks.lua` - Task cache and tracking operations
+- (New) `Model/Neighborhoods.lua` - Neighborhood initiative and housing API support
+
+### Files Added
+- `Model/Progress.lua` - Progress calculations and milestone logic
+- `Model/Tasks.lua` - Task XP cache management and tracking
+- `Model/Neighborhoods.lua` - Neighborhood data and housing API interaction
+
+---
+
 ## [1.1.1] - 2026-01-24
 
 ### Fixed

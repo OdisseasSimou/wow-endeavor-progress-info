@@ -37,14 +37,27 @@ A World of Warcraft addon that displays XP progress for housing endeavor milesto
 3. View the current endeavor name, milestone progress, and completion percentage
 
 ### Task XP Tooltips
-- Hover over any task in the Endeavors tab to see its contribution XP value
+- Hover over any task in the Endeavors tab to see its Endeavor Contribution XP value
 - The addon automatically reads XP data from your activity log (most recent completion)
-- Tooltips show the task name and contribution amount (e.g., "0.65 XP")
+- Tooltips show "Endeavor Contribution: X.XX XP" format
 - Data updates automatically when the activity log changes
 
 ## Commands
 
-- `/et` - Open settings panel
+All commands use `/et` as the base:
+
+### Settings
+- `/et`, `/et config`, or `/et settings` - Open settings panel
+
+### Data Management
+- `/et refresh`, `/et reload`, or `/et update` - Manual refresh and cache rebuild
+
+### Leaderboard
+- `/et leaderboard`, `/et top`, or `/et top10` - Show top 10 contributors
+- `/et tasklog` or `/et logdebug` - Debug task activity log
+
+### Debug
+- `/et debug` or `/et cache` - Show cache debug information
 
 ## Settings
 
@@ -86,14 +99,22 @@ Milestone values are automatically read from the game API with fallback to these
 
 ## Code Structure
 
-The addon follows an MVC (Model-View-Controller) architecture:
+The addon follows an MVC (Model-View-Controller) architecture with modular design:
 
-- **Model** - `Core.lua` - Data model with API interactions, XP calculations, and task cache
-- **View**
-  - `Display.lua` - XP progress overlay on the endeavors frame
-  - `Tooltips.lua` - Task tooltip enhancements showing contribution XP
-  - `UI.lua` - Settings panel with customization options
-- **Controller** - `EndeavorTracker.lua` - Main controller coordinating events and commands
+### Model Layer
+- **Core.lua** - Base connector with shared caches and global export
+- **Progress.lua** - Progress calculations and milestone logic
+- **Tasks.lua** - Task XP cache management and tracking operations
+- **Neighborhoods.lua** - Neighborhood initiative data and housing API helpers
+
+### View Layer
+- **ProgressOverlay.lua** - XP progress overlay on the endeavors frame
+- **TaskTooltips.lua** - Task tooltip enhancements showing Endeavor Contribution XP
+- **HouseFinderTooltips.lua** - Neighborhood progress tooltips in House Finder
+- **SettingsPanel.lua** - Settings panel with customization options
+
+### Controller Layer
+- **EndeavorTracker.lua** - Main controller coordinating events and slash commands
 
 ## Compatibility
 
@@ -128,6 +149,11 @@ If you encounter any issues, try:
 1. `/reload` to reload the UI
 2. `/et refresh` to manually refresh the tracker and task cache
 3. Close and reopen the Housing Dashboard
+
+For debugging:
+- `/et debug` - View cache status
+- `/et tasklog` - View activity log entries
+- `/et leaderboard` - Verify contribution tracking
 
 ## License
 
