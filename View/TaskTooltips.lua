@@ -76,31 +76,18 @@ function EndeavorTrackerTooltips:HookSingleFrame(frame)
     if not frame or frame._ETFrameHooked then return end
     
     if frame.HookScript then
-        frame:HookScript("OnEnter", function(self)
-            -- Force show a tooltip
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            
+        frame:HookScript("OnEnter", function(self)   
             -- Try to get task info
             local taskID = self.taskID or self.InitiativeTaskID or self.initiativeTaskID
             if taskID and EndeavorTrackerCore.taskXPCache[taskID] then
+                -- Show a tooltip
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 local taskData = EndeavorTrackerCore.taskXPCache[taskID]
                 GameTooltip:SetText(taskData.name, 1, 1, 1)
                 GameTooltip:AddLine(" ")
                 GameTooltip:AddDoubleLine("Endeavor Contribution:", string.format("%.2f XP", taskData.amount), 1, 0.82, 0, 1, 1, 1)
-            else
-                -- Show frame info for debugging
-                GameTooltip:SetText("Task Frame", 1, 1, 1)
-                GameTooltip:AddLine("TaskID: " .. tostring(taskID or "not found"))
-                
-                -- Show all properties
-                for k, v in pairs(self) do
-                    if type(k) == "string" and (k:lower():match("task") or k:lower():match("id")) then
-                        GameTooltip:AddLine(k .. " = " .. tostring(v))
-                    end
-                end
-            end
-            
-            GameTooltip:Show()
+                GameTooltip:Show()
+            end          
         end)
         frame:HookScript("OnLeave", function(self)
             GameTooltip:Hide()
@@ -190,6 +177,8 @@ function EndeavorTrackerTooltips:ShowTaskTooltip(taskFrame)
         GameTooltip:Show()
     end
 end
+
+
 
 -- Export
 _G.EndeavorTrackerTooltips = EndeavorTrackerTooltips

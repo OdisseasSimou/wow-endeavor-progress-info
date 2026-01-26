@@ -2,6 +2,11 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.4] - 2026-01-26
+
+### Bugfix
+- Fixed issue with tooltip hooking on wrong frames
+
 ## [1.1.3] - 2026-01-25
 
 ### Bugfix
