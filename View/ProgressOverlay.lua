@@ -41,40 +41,54 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
     end
     
     -- Collect all candidates for positioning
-    local allCandidates = {}
-    local visited = {}
-    local function AddCandidate(label, obj, depth)
-        if not obj or type(obj) ~= "table" then return end
-        if not obj.GetObjectType then return end
-        local objType = obj:GetObjectType()
-        if not objType then return end
-        local objName = obj.GetName and obj:GetName() or "unnamed"
-        local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
-        local nameMatch = objName:match("Progress") or objName:match("Bar")
-        if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
-            if labelMatch or nameMatch or objType == "StatusBar" then
-                table.insert(allCandidates, {key = label or "", obj = obj, type = objType, name = objName, depth = depth})
-            end
+local function SafeCall(obj, methodName)
+    if not obj then return nil end
+    local fn = obj[methodName]
+    if type(fn) ~= "function" then return nil end
+    local ok, res = pcall(fn, obj)
+    if ok then return res end
+end
+
+local function SafeGetName(obj)
+    local name = SafeCall(obj, "GetName")
+    if type(name) == "string" and name ~= "" then
+        return name
+    end
+end
+
+local function SafeGetObjectType(obj)
+    local t = SafeCall(obj, "GetObjectType")
+    if type(t) == "string" and t ~= "" then
+        return t
+    end
+end
+
+local allCandidates = {}
+local visited = {}
+
+local function AddCandidate(label, obj, depth)
+    if not obj or type(obj) ~= "table" then return end
+
+    local objType = SafeGetObjectType(obj)
+    if not objType then return end
+
+    local objName = SafeGetName(obj) or "unnamed"
+
+    local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
+    local nameMatch = (objName:match("Progress") or objName:match("Bar"))
+
+    if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
+        if labelMatch or nameMatch or objType == "StatusBar" then
+            table.insert(allCandidates, {
+                key = label or "",
+                obj = obj,
+                type = objType,
+                name = objName,
+                depth = depth
+            })
         end
     end
-    local function CollectAll(parent, depth)
-        if depth > 10 or not parent or visited[parent] then return end
-        visited[parent] = true
-        for k, v in pairs(parent) do
-            if type(v) == "table" then
-                AddCandidate(k, v, depth)
-                CollectAll(v, depth + 1)
-            end
-        end
-        if parent.GetChildren then
-            local children = { parent:GetChildren() }
-            for _, child in ipairs(children) do
-                AddCandidate(child.GetName and child:GetName() or "child", child, depth)
-                CollectAll(child, depth + 1)
-            end
-        end
-    end
-    CollectAll(frame, 0)
+end
     
     -- Filter candidates with depth > 4
     local deepCandidates = {}
