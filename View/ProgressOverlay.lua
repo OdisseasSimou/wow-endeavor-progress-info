@@ -39,43 +39,106 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
         self.hookedFrame = false
         return false
     end
-    
-    -- Collect all candidates for positioning
-    local allCandidates = {}
-    local visited = {}
-    local function AddCandidate(label, obj, depth)
-        if not obj or type(obj) ~= "table" then return end
-        if not obj.GetObjectType then return end
-        local objType = obj:GetObjectType()
-        if not objType then return end
-        local objName = obj.GetName and obj:GetName() or "unnamed"
-        local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
-        local nameMatch = objName:match("Progress") or objName:match("Bar")
-        if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
-            if labelMatch or nameMatch or objType == "StatusBar" then
-                table.insert(allCandidates, {key = label or "", obj = obj, type = objType, name = objName, depth = depth})
+
+local function SafeCall(obj, methodName, ...)
+    if not obj then return nil end
+
+    local t = type(obj)
+    local fn
+
+    if t == "table" then
+        fn = obj[methodName]
+    elseif t == "userdata" then
+            local mt = getmetatable(obj)
+        local idx = mt and mt.__index
+
+        if type(idx) == "table" then
+            fn = idx[methodName]
+        elseif type(idx) == "function" then
+            local ok, res = pcall(idx, obj, methodName)
+            if ok and type(res) == "function" then
+                fn = res
             end
         end
+    else
+        return nil
     end
-    local function CollectAll(parent, depth)
-        if depth > 10 or not parent or visited[parent] then return end
-        visited[parent] = true
+
+    if type(fn) ~= "function" then return nil end
+
+    local ok, res = pcall(fn, obj, ...)
+    if ok then return res end
+    return nil
+end
+
+local function SafeGetName(obj)
+    local name = SafeCall(obj, "GetName")
+    if type(name) == "string" and name ~= "" then
+        return name
+    end
+end
+
+local function SafeGetObjectType(obj)
+    local t = SafeCall(obj, "GetObjectType")
+    if type(t) == "string" and t ~= "" then
+        return t
+    end
+end
+
+-- Collect all candidates for positioning
+local allCandidates = {}
+local visited = {}
+
+local function AddCandidate(label, obj, depth)
+ if not obj or (type(obj) ~= "table" and type(obj) ~= "userdata") then return end
+
+    local objType = SafeGetObjectType(obj)
+    if not objType then return end
+
+    local objName = SafeGetName(obj) or "unnamed"
+
+    local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
+    local nameMatch = (objName:match("Progress") or objName:match("Bar"))
+
+    if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
+        if labelMatch or nameMatch or objType == "StatusBar" then
+            table.insert(allCandidates, {
+                key = label or "",
+                obj = obj,
+                type = objType,
+                name = objName,
+                depth = depth
+            })
+        end
+    end
+end
+
+-- Collect recursively (this is the "initializer" you were missing)
+local function CollectAll(parent, depth)
+    if depth > 10 or not parent or visited[parent] then return end
+    visited[parent] = true
+
+    if type(parent) == "table" then
         for k, v in pairs(parent) do
-            if type(v) == "table" then
+            if type(v) == "table" or type(v) == "userdata" then
                 AddCandidate(k, v, depth)
                 CollectAll(v, depth + 1)
             end
         end
-        if parent.GetChildren then
-            local children = { parent:GetChildren() }
-            for _, child in ipairs(children) do
-                AddCandidate(child.GetName and child:GetName() or "child", child, depth)
-                CollectAll(child, depth + 1)
-            end
+    end
+
+    local ok, children = pcall(function() return { parent:GetChildren() } end)
+    if ok and children then
+        for _, child in ipairs(children) do
+            AddCandidate(SafeGetName(child) or "child", child, depth)
+            CollectAll(child, depth + 1)
         end
     end
-    CollectAll(frame, 0)
-    
+end
+
+-- >>> This call is what populates allCandidates <<<
+CollectAll(frame, 0)
+
     -- Filter candidates with depth > 4
     local deepCandidates = {}
     for _, c in ipairs(allCandidates) do
@@ -108,56 +171,76 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
         targetCandidate = PickDeepest(allCandidates)
     end
     
-    -- Create XP info on the target using a tooltip-level overlay frame
-    if targetCandidate then
-        -- Check if overlay already exists, if so just reuse it
-        if frame.ET_XPInfoFrame and frame.ET_XPInfo then
-            -- Already exists, just update position if needed
-            frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
+-- Create XP info on the target using a tooltip-level overlay frame
+if targetCandidate and targetCandidate.obj then
+    -- Check if overlay already exists, if so just reuse it
+    if frame.ET_XPInfoFrame and frame.ET_XPInfo then
+        frame.ET_XPInfoFrame:ClearAllPoints()
+        frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
+    else
+-- Use UIParent to avoid clipping by Blizzard frames/statusbars/scrollframes
+local overlay = CreateFrame("Frame", nil, UIParent)
+overlay:SetFrameStrata("TOOLTIP")
+overlay:SetFrameLevel(9999)
+overlay:SetClampedToScreen(true)
+overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -10)
+
+-- Dark background (Added background on text)
+local bg = overlay:CreateTexture(nil, "BACKGROUND")
+bg:SetAllPoints(overlay)
+bg:SetColorTexture(0, 0, 0, 0.75)
+
+-- Text
+local xpInfo = overlay:CreateFontString(nil, "OVERLAY")
+xpInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+xpInfo:SetPoint("CENTER", overlay, "CENTER")
+xpInfo:SetWordWrap(true)
+xpInfo:SetMaxLines(2)
+-- Auto-size overlay to text (with max width + padding)
+local PAD_X, PAD_Y = 14, 10
+local MAX_W = 500  -- max width before wrap; adjustable
+
+local function UpdateOverlaySize()
+    xpInfo:SetWidth(MAX_W) -- force wrap inside MAX_W
+
+    local w = xpInfo:GetStringWidth() or 0
+    local h = xpInfo:GetStringHeight() or 0
+
+    if w > MAX_W then w = MAX_W end
+    overlay:SetSize(w + PAD_X * 2, h + PAD_Y * 2)
+end
+
+overlay.ET_UpdateOverlaySize = UpdateOverlaySize
+        if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
+            local r, g, b = EndeavorTrackerUI:GetColor()
+            xpInfo:SetTextColor(r, g, b)
         else
-            -- Create an overlay on the main frame (not the bar) so it is not clipped by the status bar
-            local overlay = CreateFrame("Frame", nil, frame)
-            overlay:SetFrameStrata("TOOLTIP")
-            overlay:SetFrameLevel(targetCandidate.obj:GetFrameLevel() + 5)
-            overlay:SetSize(500, 40)
-            overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -10)
-            
-            -- Create the text on the overlay
-            local xpInfo = overlay:CreateFontString(nil, "OVERLAY")
-            xpInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
-            xpInfo:SetPoint("CENTER", overlay, "CENTER")
-            xpInfo:SetWordWrap(true)
-            xpInfo:SetMaxLines(2)
-            
-            -- Use color from settings if available
-            if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
-                local r, g, b = EndeavorTrackerUI:GetColor()
-                xpInfo:SetTextColor(r, g, b)
-            else
-                xpInfo:SetTextColor(1, 0.82, 0)
-            end
-            
-            xpInfo:SetText("Hover over the progress bar")
-            
-            -- Start hidden, show on hover
-            overlay:Hide()
-            
-            -- Hover handlers
-            local function ShowOverlay()
-                overlay:Show()
-            end
-            local function HideOverlay()
-                overlay:Hide()
-            end
-            targetCandidate.obj:EnableMouse(true)
+            xpInfo:SetTextColor(1, 0.82, 0)
+        end
+
+        xpInfo:SetText("Hover over the progress bar")
+overlay.ET_UpdateOverlaySize()
+
+        C_Timer.After(1.0, function()
+            if overlay then overlay:Hide() end
+        end)
+
+        local function ShowOverlay() overlay:Show() end
+        local function HideOverlay() overlay:Hide() end
+
+        -- Hook hover on both the bar and the main frame (bar often doesn't receive mouse)
+        if targetCandidate.obj.EnableMouse then targetCandidate.obj:EnableMouse(true) end
+        if targetCandidate.obj.HookScript then
             targetCandidate.obj:HookScript("OnEnter", ShowOverlay)
             targetCandidate.obj:HookScript("OnLeave", HideOverlay)
-            
-            frame.ET_XPInfo = xpInfo
-            frame.ET_XPInfoFrame = overlay
-            frame.ET_ProgressBar = targetCandidate.obj
         end
+
+        -- Removed hook on frame (some bugs happening)
+        frame.ET_XPInfo = xpInfo
+        frame.ET_XPInfoFrame = overlay
+        frame.ET_ProgressBar = targetCandidate.obj
     end
+end
     
     -- Hook frame show
     if not frame._EndeavorTrackerHooked then
