@@ -2,6 +2,22 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.5] - 2026-01-30
+
+### UI Improvements
+- Removed text on frame (caused bad interactions)
+- Added black background to the text
+
+### Credits
+- **Contributors**: Added `n17r091` to the Contributors field in `EndeavorTracker.toc` for proper credit.
+
+### Technical
+- **Robustness Improvements** (`ProgressOverlay.lua`):
+  - Added `SafeCall`, `SafeGetName`, and `SafeGetObjectType` helper functions to safely access frame properties and methods, preventing errors from protected or missing methods.
+  - Refactored candidate collection logic to use these helpers, improving error resilience when scanning UI frames.
+
+
+
 ## [1.1.4] - 2026-01-26
 
 ### Bugfix

@@ -113,7 +113,7 @@ local function AddCandidate(label, obj, depth)
     end
 end
 
--- Collect recursively (this is the "initializer" you were missing)
+-- Collect recursively all child frames
 local function CollectAll(parent, depth)
     if depth > 10 or not parent or visited[parent] then return end
     visited[parent] = true
