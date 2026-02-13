@@ -41,30 +41,13 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
     end
 
 local function SafeCall(obj, methodName, ...)
-    if not obj then return nil end
+    if not obj or type(methodName) ~= "string" then return nil end
 
-    local t = type(obj)
-    local fn
-
-    if t == "table" then
-        fn = obj[methodName]
-    elseif t == "userdata" then
-            local mt = getmetatable(obj)
-        local idx = mt and mt.__index
-
-        if type(idx) == "table" then
-            fn = idx[methodName]
-        elseif type(idx) == "function" then
-            local ok, res = pcall(idx, obj, methodName)
-            if ok and type(res) == "function" then
-                fn = res
-            end
-        end
-    else
-        return nil
-    end
-
-    if type(fn) ~= "function" then return nil end
+    -- Avoid metatable/__index access on userdata (can trigger forbidden table errors)
+    local okFn, fn = pcall(function()
+        return obj[methodName]
+    end)
+    if not okFn or type(fn) ~= "function" then return nil end
 
     local ok, res = pcall(fn, obj, ...)
     if ok then return res end
@@ -118,15 +101,7 @@ local function CollectAll(parent, depth)
     if depth > 10 or not parent or visited[parent] then return end
     visited[parent] = true
 
-    if type(parent) == "table" then
-        for k, v in pairs(parent) do
-            if type(v) == "table" or type(v) == "userdata" then
-                AddCandidate(k, v, depth)
-                CollectAll(v, depth + 1)
-            end
-        end
-    end
-
+    -- Only traverse children; do not recurse with pairs(parent)
     local ok, children = pcall(function() return { parent:GetChildren() } end)
     if ok and children then
         for _, child in ipairs(children) do
