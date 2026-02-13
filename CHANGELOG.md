@@ -2,6 +2,13 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.6] - 2026-02-13
+
+### Fixed
+- Fixed forbidden table errors when accessing protected WoW UI frames during frame scanning in `ProgressOverlay.lua`
+  - Added `SafeCall`, `SafeGetName`, and `SafeGetObjectType` helper functions to safely access frame properties
+  - Improved error handling for protected frame access during candidate collection
+
 ## [1.1.5] - 2026-01-30
 
 ### UI Improvements
