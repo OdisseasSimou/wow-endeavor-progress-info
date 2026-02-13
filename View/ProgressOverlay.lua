@@ -1,6 +1,5 @@
 -- ProgressOverlay.lua
 -- View: XP progress display overlay on neighborhood initiative frame
-
 local EndeavorTrackerDisplay = {}
 
 -- Reference to hooked frame
@@ -8,11 +7,8 @@ EndeavorTrackerDisplay.hookedFrame = nil
 
 function EndeavorTrackerDisplay:HookEndeavorsFrame()
     -- Search for Blizzard's neighborhood initiative UI
-    local possibleFrames = {
-        "NeighborhoodInitiativeFrame",
-        "HousingDashboardFrame",
-    }
-    
+    local possibleFrames = {"NeighborhoodInitiativeFrame", "HousingDashboardFrame"}
+
     local frame = nil
     for _, frameName in ipairs(possibleFrames) do
         frame = _G[frameName]
@@ -20,7 +16,7 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
             break
         end
     end
-    
+
     -- Search all global frames for Initiative/Neighborhood
     if not frame then
         for k, v in pairs(_G) do
@@ -34,85 +30,99 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
             end
         end
     end
-    
+
     if not frame then
         self.hookedFrame = false
         return false
     end
 
-local function SafeCall(obj, methodName, ...)
-    if not obj or type(methodName) ~= "string" then return nil end
+    local function SafeCall(obj, methodName, ...)
+        if not obj or type(methodName) ~= "string" then
+            return nil
+        end
 
-    -- Avoid metatable/__index access on userdata (can trigger forbidden table errors)
-    local okFn, fn = pcall(function()
-        return obj[methodName]
-    end)
-    if not okFn or type(fn) ~= "function" then return nil end
+        -- Avoid metatable/__index access on userdata (can trigger forbidden table errors)
+        local okFn, fn = pcall(function()
+            return obj[methodName]
+        end)
+        if not okFn or type(fn) ~= "function" then
+            return nil
+        end
 
-    local ok, res = pcall(fn, obj, ...)
-    if ok then return res end
-    return nil
-end
-
-local function SafeGetName(obj)
-    local name = SafeCall(obj, "GetName")
-    if type(name) == "string" and name ~= "" then
-        return name
+        local ok, res = pcall(fn, obj, ...)
+        if ok then
+            return res
+        end
+        return nil
     end
-end
 
-local function SafeGetObjectType(obj)
-    local t = SafeCall(obj, "GetObjectType")
-    if type(t) == "string" and t ~= "" then
-        return t
-    end
-end
-
--- Collect all candidates for positioning
-local allCandidates = {}
-local visited = {}
-
-local function AddCandidate(label, obj, depth)
- if not obj or (type(obj) ~= "table" and type(obj) ~= "userdata") then return end
-
-    local objType = SafeGetObjectType(obj)
-    if not objType then return end
-
-    local objName = SafeGetName(obj) or "unnamed"
-
-    local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
-    local nameMatch = (objName:match("Progress") or objName:match("Bar"))
-
-    if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
-        if labelMatch or nameMatch or objType == "StatusBar" then
-            table.insert(allCandidates, {
-                key = label or "",
-                obj = obj,
-                type = objType,
-                name = objName,
-                depth = depth
-            })
+    local function SafeGetName(obj)
+        local name = SafeCall(obj, "GetName")
+        if type(name) == "string" and name ~= "" then
+            return name
         end
     end
-end
 
--- Collect recursively all child frames
-local function CollectAll(parent, depth)
-    if depth > 10 or not parent or visited[parent] then return end
-    visited[parent] = true
-
-    -- Only traverse children; do not recurse with pairs(parent)
-    local ok, children = pcall(function() return { parent:GetChildren() } end)
-    if ok and children then
-        for _, child in ipairs(children) do
-            AddCandidate(SafeGetName(child) or "child", child, depth)
-            CollectAll(child, depth + 1)
+    local function SafeGetObjectType(obj)
+        local t = SafeCall(obj, "GetObjectType")
+        if type(t) == "string" and t ~= "" then
+            return t
         end
     end
-end
 
--- >>> This call is what populates allCandidates <<<
-CollectAll(frame, 0)
+    -- Collect all candidates for positioning
+    local allCandidates = {}
+    local visited = {}
+
+    local function AddCandidate(label, obj, depth)
+        if not obj or (type(obj) ~= "table" and type(obj) ~= "userdata") then
+            return
+        end
+
+        local objType = SafeGetObjectType(obj)
+        if not objType then
+            return
+        end
+
+        local objName = SafeGetName(obj) or "unnamed"
+
+        local labelMatch = type(label) == "string" and (label:match("Progress") or label:match("Bar"))
+        local nameMatch = (objName:match("Progress") or objName:match("Bar"))
+
+        if objType == "StatusBar" or objType == "Frame" or objType == "Slider" then
+            if labelMatch or nameMatch or objType == "StatusBar" then
+                table.insert(allCandidates, {
+                    key = label or "",
+                    obj = obj,
+                    type = objType,
+                    name = objName,
+                    depth = depth
+                })
+            end
+        end
+    end
+
+    -- Collect recursively all child frames
+    local function CollectAll(parent, depth)
+        if depth > 10 or not parent or visited[parent] then
+            return
+        end
+        visited[parent] = true
+
+        -- Only traverse children; do not recurse with pairs(parent)
+        local ok, children = pcall(function()
+            return {parent:GetChildren()}
+        end)
+        if ok and children then
+            for _, child in ipairs(children) do
+                AddCandidate(SafeGetName(child) or "child", child, depth)
+                CollectAll(child, depth + 1)
+            end
+        end
+    end
+
+    -- >>> This call is what populates allCandidates <<<
+    CollectAll(frame, 0)
 
     -- Filter candidates with depth > 4
     local deepCandidates = {}
@@ -121,7 +131,7 @@ CollectAll(frame, 0)
             table.insert(deepCandidates, c)
         end
     end
-    
+
     local function PickDeepest(candidates)
         local best = nil
         for _, c in ipairs(candidates) do
@@ -145,78 +155,101 @@ CollectAll(frame, 0)
     if not targetCandidate then
         targetCandidate = PickDeepest(allCandidates)
     end
-    
--- Create XP info on the target using a tooltip-level overlay frame
-if targetCandidate and targetCandidate.obj then
-    -- Check if overlay already exists, if so just reuse it
-    if frame.ET_XPInfoFrame and frame.ET_XPInfo then
-        frame.ET_XPInfoFrame:ClearAllPoints()
-        frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
-    else
--- Use UIParent to avoid clipping by Blizzard frames/statusbars/scrollframes
-local overlay = CreateFrame("Frame", nil, UIParent)
-overlay:SetFrameStrata("TOOLTIP")
-overlay:SetFrameLevel(9999)
-overlay:SetClampedToScreen(true)
-overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -10)
 
--- Dark background (Added background on text)
-local bg = overlay:CreateTexture(nil, "BACKGROUND")
-bg:SetAllPoints(overlay)
-bg:SetColorTexture(0, 0, 0, 0.75)
-
--- Text
-local xpInfo = overlay:CreateFontString(nil, "OVERLAY")
-xpInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
-xpInfo:SetPoint("CENTER", overlay, "CENTER")
-xpInfo:SetWordWrap(true)
-xpInfo:SetMaxLines(2)
--- Auto-size overlay to text (with max width + padding)
-local PAD_X, PAD_Y = 14, 10
-local MAX_W = 500  -- max width before wrap; adjustable
-
-local function UpdateOverlaySize()
-    xpInfo:SetWidth(MAX_W) -- force wrap inside MAX_W
-
-    local w = xpInfo:GetStringWidth() or 0
-    local h = xpInfo:GetStringHeight() or 0
-
-    if w > MAX_W then w = MAX_W end
-    overlay:SetSize(w + PAD_X * 2, h + PAD_Y * 2)
-end
-
-overlay.ET_UpdateOverlaySize = UpdateOverlaySize
-        if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
-            local r, g, b = EndeavorTrackerUI:GetColor()
-            xpInfo:SetTextColor(r, g, b)
+    -- Create XP info on the target using a tooltip-level overlay frame
+    if targetCandidate and targetCandidate.obj then
+        -- Check if overlay already exists, if so just reuse it
+        if frame.ET_XPInfoFrame and frame.ET_XPInfo then
+            frame.ET_XPInfoFrame:ClearAllPoints()
+            frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
         else
-            xpInfo:SetTextColor(1, 0.82, 0)
+            -- Use UIParent to avoid clipping by Blizzard frames/statusbars/scrollframes
+            local overlay = CreateFrame("Frame", nil, UIParent)
+            overlay:SetFrameStrata("TOOLTIP")
+            overlay:SetFrameLevel(9999)
+            overlay:SetClampedToScreen(true)
+            overlay:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -10)
+
+            -- Dark background (Added background on text)
+            local bg = overlay:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints(overlay)
+            bg:SetColorTexture(0, 0, 0, 0.75)
+
+            -- Text
+            local xpInfo = overlay:CreateFontString(nil, "OVERLAY")
+            xpInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+            xpInfo:SetPoint("CENTER", overlay, "CENTER")
+            xpInfo:SetWordWrap(true)
+            xpInfo:SetMaxLines(2)
+                        -- Auto-size overlay to text (with max width + padding)
+            local PAD_X, PAD_Y = 14, 10
+            local MAX_W = 500 -- max width before wrap; adjustable
+
+            local function UpdateOverlaySize()
+                -- Measure natural (unwrapped) width first
+                xpInfo:SetWidth(0)
+                local naturalW = xpInfo:GetStringWidth() or 0
+
+                -- Apply wrapping only when needed
+                local textW = naturalW
+                if textW > MAX_W then
+                    textW = MAX_W
+                end
+                if textW < 1 then
+                    textW = 1
+                end
+
+                xpInfo:SetWidth(textW)
+
+                local h = xpInfo:GetStringHeight() or 0
+                if h < 1 then
+                    h = 1
+                end
+
+                overlay:SetSize(textW + PAD_X * 2, h + PAD_Y * 2)
+            end
+
+
+            overlay.ET_UpdateOverlaySize = UpdateOverlaySize
+            if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
+                local r, g, b = EndeavorTrackerUI:GetColor()
+                xpInfo:SetTextColor(r, g, b)
+            else
+                xpInfo:SetTextColor(1, 0.82, 0)
+            end
+
+            xpInfo:SetText("Hover over the progress bar")
+            overlay.ET_UpdateOverlaySize()
+
+            C_Timer.After(1.0, function()
+                if overlay then
+                    overlay:Hide()
+                end
+            end)
+
+            local function ShowOverlay()
+                overlay:Show()
+            end
+            local function HideOverlay()
+                overlay:Hide()
+            end
+
+            -- Hook hover on both the bar and the main frame (bar often doesn't receive mouse)
+            if targetCandidate.obj.EnableMouse then
+                targetCandidate.obj:EnableMouse(true)
+            end
+            if targetCandidate.obj.HookScript then
+                targetCandidate.obj:HookScript("OnEnter", ShowOverlay)
+                targetCandidate.obj:HookScript("OnLeave", HideOverlay)
+            end
+
+            -- Removed hook on frame (some bugs happening)
+            frame.ET_XPInfo = xpInfo
+            frame.ET_XPInfoFrame = overlay
+            frame.ET_ProgressBar = targetCandidate.obj
         end
-
-        xpInfo:SetText("Hover over the progress bar")
-overlay.ET_UpdateOverlaySize()
-
-        C_Timer.After(1.0, function()
-            if overlay then overlay:Hide() end
-        end)
-
-        local function ShowOverlay() overlay:Show() end
-        local function HideOverlay() overlay:Hide() end
-
-        -- Hook hover on both the bar and the main frame (bar often doesn't receive mouse)
-        if targetCandidate.obj.EnableMouse then targetCandidate.obj:EnableMouse(true) end
-        if targetCandidate.obj.HookScript then
-            targetCandidate.obj:HookScript("OnEnter", ShowOverlay)
-            targetCandidate.obj:HookScript("OnLeave", HideOverlay)
-        end
-
-        -- Removed hook on frame (some bugs happening)
-        frame.ET_XPInfo = xpInfo
-        frame.ET_XPInfoFrame = overlay
-        frame.ET_ProgressBar = targetCandidate.obj
     end
-end
-    
+
     -- Hook frame show
     if not frame._EndeavorTrackerHooked then
         frame:HookScript("OnShow", function()
@@ -232,7 +265,7 @@ end
             end)
         end)
         frame._EndeavorTrackerHooked = true
-        
+
         -- Also call it immediately if frame is already shown
         if frame:IsShown() then
             C_NeighborhoodInitiative.RequestInitiativeActivityLog()
@@ -243,10 +276,10 @@ end
             end)
         end
     end
-    
+
     -- Store the frame reference
     self.hookedFrame = frame
-    
+
     return true
 end
 
@@ -257,70 +290,84 @@ function EndeavorTrackerDisplay:UpdateXPDisplay()
             return
         end
     end
-    
+
     -- Use stored frame reference
     local frame = self.hookedFrame
     if not frame or frame == false then
         return
     end
-    
+
     -- XP info should already be created by HookEndeavorsFrame
     if not frame.ET_XPInfo then
         return
     end
-    
+
+    local function ResizeOverlay()
+        if frame.ET_XPInfoFrame and frame.ET_XPInfoFrame.ET_UpdateOverlaySize then
+            frame.ET_XPInfoFrame.ET_UpdateOverlaySize()
+        end
+    end
+
     -- Update text color from settings
     if EndeavorTrackerUI and EndeavorTrackerUI.GetColor then
         local r, g, b = EndeavorTrackerUI:GetColor()
         frame.ET_XPInfo:SetTextColor(r, g, b)
     end
-    
+
     local data = EndeavorTrackerCore:GetCurrentProgress()
     if not data then
         frame.ET_XPInfo:SetText("")
+        ResizeOverlay()
         return
     end
-    
+
     local currentXP = data.currentXP or 0
-    
+
     -- Get milestone thresholds from API or use fallback
     local thresholds = EndeavorTrackerCore:GetMilestoneThresholds(data)
     local xpNeeded, milestone, threshold, usedThresholds = EndeavorTrackerCore:CalculateXPNeeded(currentXP, thresholds)
-    
+
+    local text
+
     if xpNeeded and xpNeeded > 0 then
         -- Get the text format preference
         local textFormat = "detailed"
         if EndeavorTrackerUI and EndeavorTrackerUI.GetTextFormat then
             textFormat = EndeavorTrackerUI:GetTextFormat()
         end
-        
+
         -- Calculate percentage from previous milestone to next
         local completedMilestone = milestone - 1
         local previousThreshold = completedMilestone > 0 and thresholds[completedMilestone] or 0
         local xpFromPrevious = currentXP - previousThreshold
         local xpBetweenMilestones = threshold - previousThreshold
         local percentage = math.floor((xpFromPrevious / xpBetweenMilestones) * 1000) / 10
-        
+
         -- Format text based on selected format
-        local text = self:FormatText(textFormat, milestone, xpNeeded, xpFromPrevious, xpBetweenMilestones, percentage, completedMilestone, currentXP)
-        
-        frame.ET_XPInfo:SetText(text)
+        text = self:FormatText(textFormat, milestone, xpNeeded, xpFromPrevious, xpBetweenMilestones, percentage,
+            completedMilestone, currentXP)
     elseif xpNeeded == 0 then
-        frame.ET_XPInfo:SetText("All milestones completed!")
+        text = "All milestones completed!"
     else
-        frame.ET_XPInfo:SetText("Calculating...")
+        text = "Calculating..."
     end
+
+    frame.ET_XPInfo:SetText(text)
+    ResizeOverlay()
 end
 
-function EndeavorTrackerDisplay:FormatText(textFormat, milestone, xpNeeded, xpFromPrevious, xpBetweenMilestones, percentage, completedMilestone, currentXP)
+function EndeavorTrackerDisplay:FormatText(textFormat, milestone, xpNeeded, xpFromPrevious, xpBetweenMilestones,
+    percentage, completedMilestone, currentXP)
     if textFormat == "simple" then
         if completedMilestone > 0 then
-            return string.format("%.1f XP to reach Milestone %d (completed: M%d)", xpNeeded, milestone, completedMilestone)
+            return string.format("%.1f XP to reach Milestone %d (completed: M%d)", xpNeeded, milestone,
+                completedMilestone)
         else
             return string.format("%.1f XP to reach Milestone %d", xpNeeded, milestone)
         end
     elseif textFormat == "progress" then
-        return string.format("M%d Progress: %.1f/%.1f (%.1f%%) - %.1f XP to go", milestone, xpFromPrevious, xpBetweenMilestones, percentage, xpNeeded)
+        return string.format("M%d Progress: %.1f/%.1f (%.1f%%) - %.1f XP to go", milestone, xpFromPrevious,
+            xpBetweenMilestones, percentage, xpNeeded)
     elseif textFormat == "short" then
         return string.format("To Milestone %d: %.1f XP remaining", milestone, xpNeeded)
     elseif textFormat == "minimal" then
@@ -331,7 +378,8 @@ function EndeavorTrackerDisplay:FormatText(textFormat, milestone, xpNeeded, xpFr
         local xpToFinal = 1000 - currentXP
         return string.format("Next: %.1f XP | Final: %.1f XP", xpNeeded, xpToFinal)
     else -- detailed (default)
-        return string.format("Milestone %d: %.1f / %.1f (%.1f XP needed)", milestone, xpFromPrevious, xpBetweenMilestones, xpNeeded)
+        return string.format("Milestone %d: %.1f / %.1f (%.1f XP needed)", milestone, xpFromPrevious,
+            xpBetweenMilestones, xpNeeded)
     end
 end
 

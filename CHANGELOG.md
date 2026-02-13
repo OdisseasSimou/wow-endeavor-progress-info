@@ -2,6 +2,11 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.7] - 2026-02-13
+
+### Fixed
+- Fixed background to match text width
+
 ## [1.1.6] - 2026-02-13
 
 ### Fixed
