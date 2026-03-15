@@ -8,6 +8,35 @@ local EndeavorTracker = {}
 -- Silence chat output in this module
 local print = function(...) end
 
+-- Debounce timers: coalesce rapid identical server requests into one
+local pendingRefreshTimer = nil
+local pendingDisplayTimer = nil
+
+local function DebounceRefresh()
+    if pendingRefreshTimer then
+        pendingRefreshTimer:Cancel()
+    end
+    pendingRefreshTimer = C_Timer.NewTimer(0.5, function()
+        pendingRefreshTimer = nil
+        if C_NeighborhoodInitiative then
+            C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+        end
+    end)
+end
+
+local function DebounceDisplay()
+    if pendingDisplayTimer then
+        pendingDisplayTimer:Cancel()
+    end
+    pendingDisplayTimer = C_Timer.NewTimer(0.3, function()
+        pendingDisplayTimer = nil
+        if EndeavorTrackerDisplay then
+            EndeavorTrackerDisplay:UpdateXPDisplay()
+        end
+    end)
+end
+
 function EndeavorTracker:Initialize()
     -- Setup event listeners
     local eventFrame = CreateFrame("Frame")
@@ -25,34 +54,21 @@ function EndeavorTracker:Initialize()
     
     eventFrame:SetScript("OnEvent", function(self, event, ...)
         if event == "NEIGHBORHOOD_INITIATIVE_UPDATED" then
-            -- Neighborhood progress updated
-            C_Timer.After(0.2, function()
-                if EndeavorTrackerDisplay then
-                    EndeavorTrackerDisplay:UpdateXPDisplay()
-                end
-                -- Do not refresh the browser list here; it should only refresh once on open
-            end)
-            
+            -- Neighborhood progress updated; debounce so rapid bursts collapse into one display update
+            DebounceDisplay()
+
         elseif event == "INITIATIVE_ACTIVITY_LOG_UPDATED" then
             -- Activity log updated - someone contributed
             -- Don't call RequestInitiativeActivityLog() here as it causes infinite recursion!
-            -- The event is already triggered, just update the display
-            C_Timer.After(0.3, function()
-                if EndeavorTrackerDisplay then
-                    EndeavorTrackerDisplay:UpdateXPDisplay()
-                end
-            end)
-            
+            -- The event is already triggered, just update the display (debounced)
+            DebounceDisplay()
+
         elseif event == "INITIATIVE_TASK_COMPLETED" then
-            -- A task was completed
+            -- A task was completed; debounce so killing multiple mobs at once
+            -- collapses into a single pair of server requests instead of N pairs
             local taskName = ...
             print(string.format("|cFF00FF00✓ Initiative Task Completed: %s|r", taskName))
-            C_Timer.After(0.5, function()
-                if C_NeighborhoodInitiative then
-                    C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
-                    C_NeighborhoodInitiative.RequestInitiativeActivityLog()
-                end
-            end)
+            DebounceRefresh()
             
         elseif event == "INITIATIVE_COMPLETED" then
             -- Entire initiative completed!
