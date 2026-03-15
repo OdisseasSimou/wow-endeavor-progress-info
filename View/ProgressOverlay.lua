@@ -4,6 +4,9 @@ local EndeavorTrackerDisplay = {}
 
 -- Reference to hooked frame
 EndeavorTrackerDisplay.hookedFrame = nil
+-- Set to true once the one-time pairs(_G) fallback scan has been attempted,
+-- so it never runs again regardless of outcome
+EndeavorTrackerDisplay.globalScanDone = false
 
 function EndeavorTrackerDisplay:HookEndeavorsFrame()
     -- Search for Blizzard's neighborhood initiative UI
@@ -17,12 +20,13 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
         end
     end
 
-    -- Search all global frames for Initiative/Neighborhood
-    if not frame then
+    -- Fallback: scan globals for a matching frame, but only once ever
+    if not frame and not self.globalScanDone then
+        self.globalScanDone = true
         for k, v in pairs(_G) do
             if type(v) == "table" and type(k) == "string" then
                 if (k:match("Initiative") or k:match("Neighborhood")) and k:match("Frame") then
-                    if not frame and v.CreateFontString then
+                    if v.CreateFontString then
                         frame = v
                         break
                     end
@@ -284,8 +288,12 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
 end
 
 function EndeavorTrackerDisplay:UpdateXPDisplay()
-    -- Try to hook if not already hooked
-    if not self.hookedFrame or self.hookedFrame == false then
+    -- Try to hook if not already hooked.
+    -- hookedFrame == false means a previous attempt fully failed; don't retry.
+    if self.hookedFrame == false then
+        return
+    end
+    if not self.hookedFrame then
         if not self:HookEndeavorsFrame() then
             return
         end
