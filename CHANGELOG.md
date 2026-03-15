@@ -2,6 +2,28 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.8] - 2026-03-15
+
+### Fixed
+- Added debounced refresh/update handling to prevent event storms from overwhelming the addon during rapid task completions.
+  - `INITIATIVE_TASK_COMPLETED` now coalesces repeated refresh requests into a single delayed refresh.
+  - `NEIGHBORHOOD_INITIATIVE_UPDATED` and `INITIATIVE_ACTIVITY_LOG_UPDATED` now coalesce repeated display updates.
+
+### Performance
+- Added one-time protection for global frame fallback scanning in `ProgressOverlay.lua`.
+  - Prevents repeated full `pairs(_G)` scans when the neighborhood initiative frame is not immediately available.
+
+### Technical
+- `Controller/EndeavorTracker.lua`
+  - Added `DebounceRefresh()` and `DebounceDisplay()` helper timers.
+  - Replaced per-event `C_Timer.After` refresh/display calls in high-frequency events with debounced calls.
+- `View/ProgressOverlay.lua`
+  - Added `globalScanDone` flag and updated frame hook fallback logic.
+  - Updated hook retry behavior to avoid repeated expensive fallback scans after initial attempt.
+
+### Credits
+- **Contributors**: PR #6 implemented by `zaphon`.
+
 ## [1.1.7] - 2026-02-13
 
 ### Fixed
