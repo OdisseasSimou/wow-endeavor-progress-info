@@ -2,6 +2,30 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.9] - 2026-04-04
+
+### Added
+- Added centralized throttled API request wrappers in `Model/Core.lua` for noisy initiative endpoints:
+  - `RequestNeighborhoodInitiativeInfo(minInterval, force)`
+  - `RequestInitiativeActivityLog(minInterval, force)`
+  - Shared helper methods for timestamp tracking and throttle checks.
+
+### Changed
+- Updated controller refresh paths in `Controller/EndeavorTracker.lua` to use core throttled request helpers.
+- Updated task cache build path in `Model/Tasks.lua` to use throttled activity-log requests.
+- Updated overlay refresh hooks in `View/ProgressOverlay.lua` to use throttled activity-log requests.
+- Improved frame discovery resilience in `View/ProgressOverlay.lua` by retrying global fallback scans when Blizzard UI loads late.
+
+### UI
+- Added optional hover diagnostics in `View/ProgressOverlay.lua` via a `debugHover` toggle and `DebugHover()` helper.
+- Expanded hover event hooking to include both progress-target and root-frame fallback handlers.
+
+### Fixed
+- Reduced duplicate API request bursts during rapid events and repeated frame show/update cycles.
+
+### Technical
+- Removed legacy `hookedFrame == false` short-circuit behavior in `UpdateXPDisplay()` to allow later retry attempts when frames are loaded after initialization.
+
 ## [1.1.8] - 2026-03-15
 
 ### Fixed

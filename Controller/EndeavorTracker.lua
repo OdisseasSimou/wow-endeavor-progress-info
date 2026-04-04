@@ -19,8 +19,13 @@ local function DebounceRefresh()
     pendingRefreshTimer = C_Timer.NewTimer(0.5, function()
         pendingRefreshTimer = nil
         if C_NeighborhoodInitiative then
-            C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
-            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+            if EndeavorTrackerCore and EndeavorTrackerCore.RequestNeighborhoodInitiativeInfo then
+                EndeavorTrackerCore:RequestNeighborhoodInitiativeInfo(1.5)
+                EndeavorTrackerCore:RequestInitiativeActivityLog(2.0)
+            else
+                C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+                C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+            end
         end
     end)
 end
@@ -129,7 +134,11 @@ function EndeavorTracker:Initialize()
         elseif event == "PLAYER_ENTERING_WORLD" then
             C_Timer.After(1, function()
                 if C_NeighborhoodInitiative then
-                    C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+                    if EndeavorTrackerCore and EndeavorTrackerCore.RequestNeighborhoodInitiativeInfo then
+                        EndeavorTrackerCore:RequestNeighborhoodInitiativeInfo(1.5)
+                    else
+                        C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+                    end
                 end
                 if EndeavorTrackerDisplay then
                     EndeavorTrackerDisplay:HookEndeavorsFrame()
@@ -194,8 +203,13 @@ SlashCmdList["ENDEAVORTRACKER"] = function(msg)
         end
         
         if C_NeighborhoodInitiative then
-            C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
-            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+            if EndeavorTrackerCore and EndeavorTrackerCore.RequestNeighborhoodInitiativeInfo then
+                EndeavorTrackerCore:RequestNeighborhoodInitiativeInfo(0, true)
+                EndeavorTrackerCore:RequestInitiativeActivityLog(0, true)
+            else
+                C_NeighborhoodInitiative.RequestNeighborhoodInitiativeInfo()
+                C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+            end
         end
         if EndeavorTrackerDisplay then
             EndeavorTrackerDisplay:HookEndeavorsFrame()
@@ -204,7 +218,7 @@ SlashCmdList["ENDEAVORTRACKER"] = function(msg)
         -- Wait longer for API data to be ready, then rebuild cache
         C_Timer.After(1, function()
             if EndeavorTrackerCore then
-                EndeavorTrackerCore:BuildTaskXPCache()
+                EndeavorTrackerCore:BuildTaskXPCache(true)
             end
             if EndeavorTrackerDisplay then
                 EndeavorTrackerDisplay:UpdateXPDisplay()
@@ -219,7 +233,11 @@ SlashCmdList["ENDEAVORTRACKER"] = function(msg)
             return
         end
         
-        C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+        if EndeavorTrackerCore and EndeavorTrackerCore.RequestInitiativeActivityLog then
+            EndeavorTrackerCore:RequestInitiativeActivityLog(0, true)
+        else
+            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+        end
         C_Timer.After(0.2, function()
             local logInfo = C_NeighborhoodInitiative.GetInitiativeActivityLogInfo()
             if not logInfo or not logInfo.taskActivity then
@@ -268,7 +286,11 @@ SlashCmdList["ENDEAVORTRACKER"] = function(msg)
             return
         end
         
-        C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+        if EndeavorTrackerCore and EndeavorTrackerCore.RequestInitiativeActivityLog then
+            EndeavorTrackerCore:RequestInitiativeActivityLog(0, true)
+        else
+            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+        end
         C_Timer.After(0.2, function()
             local logInfo = C_NeighborhoodInitiative.GetInitiativeActivityLogInfo()
             if not logInfo or not logInfo.taskActivity then
