@@ -3,17 +3,25 @@
 
 local Core = EndeavorTrackerCore
 
-function Core:BuildTaskXPCache()
+function Core:BuildTaskXPCache(forceRequest)
     local cache = {}
     
     if not C_NeighborhoodInitiative then
         return cache
     end
     
-    C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+    local requestedNow = false
+    if Core and Core.RequestInitiativeActivityLog then
+        requestedNow = Core:RequestInitiativeActivityLog(2.0, forceRequest)
+    else
+        C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+        requestedNow = true
+    end
     
     local logInfo = C_NeighborhoodInitiative.GetInitiativeActivityLogInfo()
-    if logInfo and logInfo.taskActivity then
+    local hasTaskActivity = logInfo and logInfo.taskActivity ~= nil
+
+    if hasTaskActivity then
         for _, entry in ipairs(logInfo.taskActivity) do
             local taskId = entry.taskID
             local taskName = entry.taskName
@@ -31,10 +39,24 @@ function Core:BuildTaskXPCache()
             end
         end
     end
-    
+
+    if not hasTaskActivity then
+        if requestedNow and C_Timer and not Core._taskCacheRetryPending then
+            -- The API is async; try once shortly after a request before marking cache fresh.
+            Core._taskCacheRetryPending = true
+            C_Timer.After(0.3, function()
+                Core._taskCacheRetryPending = false
+                Core:BuildTaskXPCache(false)
+            end)
+        end
+
+        -- Keep the previous cache freshness when we cannot confirm a new snapshot.
+        return Core.taskXPCache or {}
+    end
+
     Core.taskXPCache = cache
     Core.taskXPCacheTime = GetTime()
-    
+
     return cache
 end
 

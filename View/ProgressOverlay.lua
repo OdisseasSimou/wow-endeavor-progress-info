@@ -4,9 +4,27 @@ local EndeavorTrackerDisplay = {}
 
 -- Reference to hooked frame
 EndeavorTrackerDisplay.hookedFrame = nil
--- Set to true once the one-time pairs(_G) fallback scan has been attempted,
--- so it never runs again regardless of outcome
-EndeavorTrackerDisplay.globalScanDone = false
+-- Temporary debug switch for diagnosing missing hover events
+EndeavorTrackerDisplay.debugHover = false
+-- Bounded fallback scan state to avoid repeated full _G scans forever
+EndeavorTrackerDisplay.scanState = EndeavorTrackerDisplay.scanState or {
+    attempts = 0,
+    windowStart = 0,
+    lastScan = 0,
+}
+
+local MAX_GLOBAL_SCAN_ATTEMPTS = 6
+local SCAN_WINDOW_SECONDS = 8
+local SCAN_MIN_INTERVAL = 0.75
+
+function EndeavorTrackerDisplay:DebugHover(msg)
+    if not self.debugHover then
+        return
+    end
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+        DEFAULT_CHAT_FRAME:AddMessage("|cFF33FF99[ET Hover]|r " .. tostring(msg))
+    end
+end
 
 function EndeavorTrackerDisplay:HookEndeavorsFrame()
     -- Search for Blizzard's neighborhood initiative UI
@@ -20,25 +38,62 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
         end
     end
 
-    -- Fallback: scan globals for a matching frame, but only once ever
-    if not frame and not self.globalScanDone then
-        self.globalScanDone = true
-        for k, v in pairs(_G) do
-            if type(v) == "table" and type(k) == "string" then
-                if (k:match("Initiative") or k:match("Neighborhood")) and k:match("Frame") then
-                    if v.CreateFontString then
-                        frame = v
-                        break
+    local now = (GetTime and GetTime()) or 0
+
+    local function CanRunGlobalScan()
+        if now <= 0 then
+            -- If timing API is unavailable for any reason, allow a conservative scan.
+            return true
+        end
+
+        if self.scanState.windowStart == 0 or (now - self.scanState.windowStart) > SCAN_WINDOW_SECONDS then
+            self.scanState.windowStart = now
+            self.scanState.attempts = 0
+        end
+
+        if self.scanState.attempts >= MAX_GLOBAL_SCAN_ATTEMPTS then
+            return false
+        end
+
+        if self.scanState.lastScan > 0 and (now - self.scanState.lastScan) < SCAN_MIN_INTERVAL then
+            return false
+        end
+
+        self.scanState.attempts = self.scanState.attempts + 1
+        self.scanState.lastScan = now
+        return true
+    end
+
+    -- Fallback: scan globals with bounded retries to handle late Blizzard UI loading.
+    if not frame then
+        if CanRunGlobalScan() then
+            for k, v in pairs(_G) do
+                if (type(v) == "table" or type(v) == "userdata") and type(k) == "string" then
+                    if (k:match("Initiative") or k:match("Neighborhood")) and k:match("Frame") then
+                        local ok, canCreateFont = pcall(function()
+                            return v.CreateFontString ~= nil
+                        end)
+                        if ok and canCreateFont then
+                            frame = v
+                            self:DebugHover("Found frame via global scan: " .. k)
+                            break
+                        end
                     end
                 end
             end
+        else
+            self:DebugHover("Skipping global scan (bounded retry/cooldown)")
         end
     end
 
     if not frame then
-        self.hookedFrame = false
+        self:DebugHover("No frame found to hook")
         return false
     end
+
+    -- Reset bounded-scan state once we successfully found a frame.
+    self.scanState.attempts = 0
+    self.scanState.windowStart = now
 
     local function SafeCall(obj, methodName, ...)
         if not obj or type(methodName) ~= "string" then
@@ -162,10 +217,13 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
 
     -- Create XP info on the target using a tooltip-level overlay frame
     if targetCandidate and targetCandidate.obj then
+        self:DebugHover(string.format("Target candidate: type=%s name=%s depth=%d", targetCandidate.type or "?",
+            targetCandidate.name or "unnamed", targetCandidate.depth or -1))
         -- Check if overlay already exists, if so just reuse it
         if frame.ET_XPInfoFrame and frame.ET_XPInfo then
             frame.ET_XPInfoFrame:ClearAllPoints()
             frame.ET_XPInfoFrame:SetPoint("BOTTOM", targetCandidate.obj, "TOP", 50, -15)
+            self:DebugHover("Reused existing overlay frame")
         else
             -- Use UIParent to avoid clipping by Blizzard frames/statusbars/scrollframes
             local overlay = CreateFrame("Frame", nil, UIParent)
@@ -231,23 +289,76 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
                 end
             end)
 
-            local function ShowOverlay()
+            local function ShowOverlay(source)
                 overlay:Show()
+                EndeavorTrackerDisplay:DebugHover("OnEnter from " .. tostring(source))
             end
-            local function HideOverlay()
+            local function HideOverlay(source)
                 overlay:Hide()
+                EndeavorTrackerDisplay:DebugHover("OnLeave from " .. tostring(source))
+            end
+
+            local function IsMouseOverProgressTarget()
+                local target = frame.ET_ProgressBar or targetCandidate.obj
+                if not target then
+                    return false
+                end
+
+                if target.IsMouseOver then
+                    local ok, over = pcall(target.IsMouseOver, target)
+                    if ok and over then
+                        return true
+                    end
+                end
+
+                if MouseIsOver then
+                    local ok, over = pcall(MouseIsOver, target)
+                    if ok and over then
+                        return true
+                    end
+                end
+
+                return false
+            end
+
+            local function MakeEnterHandler(source)
+                return function()
+                    if source == "root-frame" and not IsMouseOverProgressTarget() then
+                        EndeavorTrackerDisplay:DebugHover("Ignored root-frame enter outside progress target")
+                        return
+                    end
+                    ShowOverlay(source)
+                end
+            end
+
+            local function MakeLeaveHandler(source)
+                return function()
+                    HideOverlay(source)
+                end
             end
 
             -- Hook hover on both the bar and the main frame (bar often doesn't receive mouse)
             if targetCandidate.obj.EnableMouse then
                 targetCandidate.obj:EnableMouse(true)
+                self:DebugHover("Enabled mouse on progress target")
             end
             if targetCandidate.obj.HookScript then
-                targetCandidate.obj:HookScript("OnEnter", ShowOverlay)
-                targetCandidate.obj:HookScript("OnLeave", HideOverlay)
+                targetCandidate.obj:HookScript("OnEnter", MakeEnterHandler("progress-target"))
+                targetCandidate.obj:HookScript("OnLeave", MakeLeaveHandler("progress-target"))
+                self:DebugHover("Hooked OnEnter/OnLeave on progress target")
             end
 
-            -- Removed hook on frame (some bugs happening)
+            -- Fallback hover target: some Blizzard status bars do not reliably get mouse events.
+            if frame.EnableMouse then
+                frame:EnableMouse(true)
+                self:DebugHover("Enabled mouse on root frame")
+            end
+            if frame.HookScript then
+                frame:HookScript("OnEnter", MakeEnterHandler("root-frame"))
+                frame:HookScript("OnLeave", MakeLeaveHandler("root-frame"))
+                self:DebugHover("Hooked OnEnter/OnLeave on root frame")
+            end
+
             frame.ET_XPInfo = xpInfo
             frame.ET_XPInfoFrame = overlay
             frame.ET_ProgressBar = targetCandidate.obj
@@ -260,7 +371,11 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
             C_Timer.After(0.1, function()
                 EndeavorTrackerDisplay:UpdateXPDisplay()
                 -- Request activity log and hook task tooltips
-                C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+                if EndeavorTrackerCore and EndeavorTrackerCore.RequestInitiativeActivityLog then
+                    EndeavorTrackerCore:RequestInitiativeActivityLog(2.5)
+                else
+                    C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+                end
                 C_Timer.After(0.5, function()
                     if EndeavorTrackerTooltips then
                         EndeavorTrackerTooltips:HookTaskTooltips(frame)
@@ -272,7 +387,11 @@ function EndeavorTrackerDisplay:HookEndeavorsFrame()
 
         -- Also call it immediately if frame is already shown
         if frame:IsShown() then
-            C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+            if EndeavorTrackerCore and EndeavorTrackerCore.RequestInitiativeActivityLog then
+                EndeavorTrackerCore:RequestInitiativeActivityLog(2.5)
+            else
+                C_NeighborhoodInitiative.RequestInitiativeActivityLog()
+            end
             C_Timer.After(0.6, function()
                 if EndeavorTrackerTooltips then
                     EndeavorTrackerTooltips:HookTaskTooltips(frame)
@@ -289,10 +408,6 @@ end
 
 function EndeavorTrackerDisplay:UpdateXPDisplay()
     -- Try to hook if not already hooked.
-    -- hookedFrame == false means a previous attempt fully failed; don't retry.
-    if self.hookedFrame == false then
-        return
-    end
     if not self.hookedFrame then
         if not self:HookEndeavorsFrame() then
             return
@@ -301,7 +416,7 @@ function EndeavorTrackerDisplay:UpdateXPDisplay()
 
     -- Use stored frame reference
     local frame = self.hookedFrame
-    if not frame or frame == false then
+    if not frame then
         return
     end
 
