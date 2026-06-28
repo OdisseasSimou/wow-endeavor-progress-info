@@ -2,6 +2,13 @@
 
 All notable changes to Endeavor Tracker addon will be documented in this file.
 
+## [1.1.10] - 2026-06-28
+
+### Changed
+- Updated TOC to depict it supports latest version
+
+
+
 ## [1.1.9] - 2026-04-04
 
 ### Added
