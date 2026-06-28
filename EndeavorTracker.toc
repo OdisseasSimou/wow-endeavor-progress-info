@@ -1,4 +1,4 @@
-## Interface: 110207, 120000
+## Interface: 110207, 120007, 120100
 ## Title: Endeavor Tracker
 ## Author: OdisseasSimou
 ## Contributors: n17r091,zaphon
